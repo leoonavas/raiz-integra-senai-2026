@@ -36,7 +36,9 @@ const SUPA = !!link && link.transport === 'supabase';
 let mode = 'local', E = null, booted = false, farmInfo = null, retryAt = 0, readOnly = false, gwWasUp = true, standby = false, saveTimer = null;
 /* cada aba tem um id: só UMA aba por vez alimenta o gateway na nuvem (senão duas simulações se misturariam) */
 const CLIENT = (window.crypto && crypto.randomUUID && crypto.randomUUID()) || Math.random().toString(36).slice(2) + Date.now().toString(36);
-const call = (op, body) => link.invoke('gateway', Object.assign({ op, farm_id: farmInfo.id, client: CLIENT }, body));
+/* toda chamada à nuvem tem tempo limite: uma requisição travada não pode prender o envio nem a troca de gateway */
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('tempo esgotado (' + ms / 1000 + ' s)')), ms))]);
+const call = (op, body) => withTimeout(link.invoke('gateway', Object.assign({ op, farm_id: farmInfo.id, client: CLIENT }, body)), 12000);
 
 function toApp(type, payload) {
   if (!S.net.gateway || !link || mode === 'edge') return;
@@ -188,7 +190,7 @@ const SCN = [
 ];
 
 function renderTabs() { $('#tabs').innerHTML = TABS.map(([k, l]) => `<button role="tab" class="${tab === k ? 'on' : ''}" data-act="tab" data-v="${k}">${l}</button>`).join(''); }
-function renderSpeed() { $('#speedBtns').innerHTML = SPEEDS.map(([v, l]) => `<button class="${(v === 0 ? !S.running || S.speed === 0 : S.running && S.speed === v) ? 'on' : ''}" data-act="speed" data-v="${v}" title="${v ? v + ' min simulados por segundo' : 'Pausar'}">${l}</button>`).join(''); }
+function renderSpeed() { const h = SPEEDS.map(([v, l]) => `<button class="${(v === 0 ? !S.running || S.speed === 0 : S.running && S.speed === v) ? 'on' : ''}" data-act="speed" data-v="${v}" title="${v ? v + ' min simulados por segundo' : 'Pausar'}">${l}</button>`).join(''); $('#speedBtns').innerHTML = h; $('#miniSpeed').innerHTML = h; }
 function jump(min) { const cur = Sim.hourOf(S.t) * 60, d = ((min - cur) % 1440 + 1440) % 1440 || 1440; fast = true; advance(Math.round(d)); fast = false; refresh(true); }
 
 function renderPanel() {
@@ -251,6 +253,8 @@ function refresh(now) {
   if (standby) set('#hGw', 'warn', 'Em espera (outra aba controla)'); else set('#hGw', S.net.gateway ? (mode === 'local' && SUPA ? 'warn' : 'ok') : 'bad', !S.net.gateway ? 'Gateway fora do ar' : !SUPA ? 'Gateway online' : mode === 'edge' ? 'Gateway: nuvem (Edge)' : mode === 'sync' ? 'Gateway: trocando…' : 'Gateway: local');
   set('#hNet', S.net.internet ? 'ok' : 'warn', S.net.internet ? 'Internet' : 'Sem internet');
   const appOn = Date.now() - appSeen < 9000; set('#hApp', appOn ? 'ok' : 'warn', appOn ? 'App conectado' : 'App aguardando');
+  { const mm = (id, from) => { const a = $(from), b = $(id); b.className = a.className; b.lastChild.textContent = a.lastChild.textContent; };
+    $('#mTime').textContent = $('#clkTime').textContent; $('#mDate').textContent = $('#clkDate').textContent; $('#mWx').textContent = $('#clkWx').textContent; mm('#mGw', '#hGw'); mm('#mApp', '#hApp'); }
   Scene.update(S); renderSpeed();
   const t = Date.now();
   if (tab === 'log') { if (dirtyLog && (now || t - lastLogDraw > 600) && !document.querySelector('#logList details:hover')) { drawLog(); lastLogDraw = t; } }
@@ -258,6 +262,39 @@ function refresh(now) {
   else tickPanel(false);
   if (now && tab !== 'dev' && tab !== 'log') renderPanel();
 }
+
+/* ---------- modo imersivo: só a fazenda, com um painelzinho que some sozinho ---------- */
+let immersive = false, lastMove = Date.now(), usedFs = false;
+function setImmersive(on) {
+  immersive = on; document.body.classList.toggle('immersive', on); $('#mini').hidden = !on;
+  if (!on) document.body.classList.remove('dock-open', 'phone-open');
+  try {
+    if (on && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().then(() => { usedFs = true; }).catch(() => { });
+    if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => { });
+  } catch (e) { }
+  lastMove = Date.now(); refresh(true);
+}
+const bump = () => { lastMove = Date.now(); $('#mini').classList.remove('idle'); };
+['mousemove', 'mousedown', 'touchstart', 'keydown', 'wheel'].forEach(ev => document.addEventListener(ev, bump, { passive: true }));
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && immersive && usedFs) { usedFs = false; setImmersive(false); } });
+setInterval(() => { if (immersive) $('#mini').classList.toggle('idle', Date.now() - lastMove > 4000 && !document.body.classList.contains('dock-open')); }, 700);
+$('#btnImm').onclick = () => setImmersive(true);
+$('#mExit').onclick = () => setImmersive(false);
+$('#mPanel').onclick = () => document.body.classList.toggle('dock-open');
+$('#mApp2').onclick = () => document.body.classList.toggle('phone-open');
+document.addEventListener('keydown', e => {
+  if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) || e.metaKey || e.ctrlKey) return;
+  if (e.code === 'KeyI') setImmersive(!immersive);
+  else if (immersive && e.code === 'KeyP') document.body.classList.toggle('dock-open');
+  else if (immersive && e.code === 'Escape' && !document.fullscreenElement) setImmersive(false);
+});
+
+/* ---------- versão nova no ar? (abas abertas antes de um deploy ficam com código antigo) ---------- */
+let ver0 = null;
+async function checkVersion() {
+  try { const v = (await (await fetch('version.txt?' + Date.now(), { cache: 'no-store' })).text()).trim(); if (!/^\d{4}/.test(v)) return; if (ver0 == null) ver0 = v; else if (v !== ver0) { $('#hint').innerHTML = '<b>Há uma versão nova da Fazenda Digital.</b> Recarregue esta aba (Cmd+Shift+R) para usá-la.'; $('#hint').style.pointerEvents = 'auto'; } } catch (e) { }
+}
+checkVersion(); setInterval(checkVersion, 60000);
 
 /* ---------- eventos ---------- */
 document.addEventListener('click', e => {
@@ -313,6 +350,7 @@ $('#btnReload').onclick = loadApp; $('#autoLogin').onchange = loadApp;
 const setPhone = hide => { $('#layout').classList.toggle('nophone', hide); $('#btnPhone').textContent = hide ? 'Mostrar app' : 'Ocultar app'; $('#btnPhone').setAttribute('aria-pressed', String(!hide)); };
 $('#btnPhone').onclick = () => setPhone(!$('#layout').classList.contains('nophone'));
 setPhone(window.innerWidth < 1000);
+$('#mApp2').hidden = cfg.transport !== 'broadcast';
 if (cfg.transport === 'broadcast') loadApp();
 else {                                                       // hospedado: o app roda em outro endereço — abre em outra aba
   setPhone(true); $('#btnPhone').hidden = true; $('#btnOpen').href = appUrl(false); $('#autoLogin').closest('.phone-tools').hidden = true;

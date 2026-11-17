@@ -14,7 +14,7 @@
   <div class="clock" aria-live="off"><b id="clkTime">05:30</b><span id="clkDate">—</span><span id="clkWx" class="wx"></span></div>
   <div class="speed" role="group" aria-label="Velocidade da simulação"><span class="lab">Velocidade</span><div id="speedBtns" class="seg"></div></div>
   <div class="chips"><span class="pill" id="hGw"><i></i>Gateway</span><span class="pill" id="hNet"><i></i>Internet</span><span class="pill" id="hApp"><i></i>App</span></div>
-  <div class="actions"><button class="btn" id="btnPhone" aria-pressed="true">Mostrar app</button><button class="btn" id="btnClaim" data-act="claim" hidden>Assumir controle</button><button class="btn" id="btnOut" hidden>Sair</button><a class="btn" id="btnOpen" href="#" target="_blank" rel="noopener">Abrir app em outra aba</a></div>
+  <div class="actions"><button class="btn" id="btnImm" title="Só a fazenda em tela cheia (tecla I)">Modo imersivo</button><button class="btn" id="btnPhone" aria-pressed="true">Mostrar app</button><button class="btn" id="btnClaim" data-act="claim" hidden>Assumir controle</button><button class="btn" id="btnOut" hidden>Sair</button><a class="btn" id="btnOpen" href="#" target="_blank" rel="noopener">Abrir app em outra aba</a></div>
 </header>
 
 <main class="layout" id="layout">
@@ -31,6 +31,13 @@
     <div class="phone-tools"><label class="chk"><input type="checkbox" id="autoLogin" checked> Entrar automaticamente</label><button class="btn sm" id="btnReload">Reiniciar app</button></div>
   </aside>
 </main>
+
+<div class="mini idle" id="mini" hidden role="toolbar" aria-label="Controles do modo imersivo">
+  <b id="mTime">05:30</b><span id="mDate" class="mut"></span><span id="mWx" class="wxp"></span>
+  <div class="seg" id="miniSpeed"></div>
+  <span class="pill" id="mGw"><i></i>Gateway</span><span class="pill" id="mApp"><i></i>App</span>
+  <button class="btn" id="mPanel" title="Mostrar/ocultar o painel (tecla P)">Painel</button><button class="btn" id="mApp2">App</button><button class="btn" id="mExit" title="Esc ou tecla I">Sair do imersivo</button>
+</div>
 
 <script src="js/config.js"></script>
 <script src="js/link.js"></script>

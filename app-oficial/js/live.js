@@ -193,6 +193,9 @@
     askHello(); setInterval(() => { if (!L.connected) askHello(); }, 2500);
     if (SUPA()) { link.ready.then(pollStatus).catch(() => { }); setInterval(pollStatus, 6000); document.addEventListener('visibilitychange', () => { if (!document.hidden) pollStatus(); }); }
     setInterval(() => link.send('app.ping', { app: 'raiz-app' }), 4000); link.send('app.ping', { app: 'raiz-app' });
+    let ver0 = null, warned = false;                                                // aba aberta antes de um deploy: avisa que há versão nova
+    const checkVersion = async () => { try { const v = (await (await fetch('version.txt?' + Date.now(), { cache: 'no-store' })).text()).trim(); if (!/^\d{4}/.test(v)) return; if (ver0 == null) ver0 = v; else if (v !== ver0 && !warned) { warned = true; toast('Há uma versão nova do app — recarregue a página', ''); } } catch (e) { } };
+    checkVersion(); setInterval(checkVersion, 60000);
     document.addEventListener('pointerdown', () => { down = true; }, true);
     ['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => { down = false; }, true));
     setInterval(() => {

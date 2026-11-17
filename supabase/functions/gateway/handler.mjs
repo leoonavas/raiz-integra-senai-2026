@@ -81,7 +81,7 @@ export function makeHandler(deps) {
   return async function handle(req) {
     const user = await deps.user(req.authorization);
     if (!user) return fail(401, 'não autenticado');
-    const b = req.body || {}, farmId = b.farm_id;
+    const b = req.body || {}, farmId = b.farm_id, client = String(b.client || 'legado');
     if (!farmId || typeof farmId !== 'string') return fail(400, 'farm_id obrigatório');
     const mem = await deps.member(user.id, farmId);
     if (!mem) return fail(403, 'sem acesso a esta fazenda');
@@ -93,7 +93,7 @@ export function makeHandler(deps) {
         const row = await deps.load(farmId);
         const age = row && row.last_ingest_at ? Math.round((now - Date.parse(row.last_ingest_at)) / 1000) : null;
         const lease = row && row.state ? leaseOf(row.state.owner, now) : null;
-        return reply(200, { ok: true, ownerActive: !!lease, ownerMine: !!(lease && lease.id === b.client), gateway: row && row.state && row.state.gwUp === false ? 'offline' : 'online', internet: row ? row.internet : true, farmAgeSec: age, pending: row && row.state ? row.state.pending || 0 : 0, lastSync: row && row.state && row.state.lastSync != null ? tsOf(row.state.lastSync) : null, hasState: !!(row && row.state && row.state.cfg && row.state.cfg.plots && row.state.cfg.plots.length), t: row ? row.t : null, ts: row && row.t != null ? tsOf(row.t) : null });
+        return reply(200, { ok: true, ownerActive: !!lease, ownerMine: !!(lease && lease.id === client), gateway: row && row.state && row.state.gwUp === false ? 'offline' : 'online', internet: row ? row.internet : true, farmAgeSec: age, pending: row && row.state ? row.state.pending || 0 : 0, lastSync: row && row.state && row.state.lastSync != null ? tsOf(row.state.lastSync) : null, hasState: !!(row && row.state && row.state.cfg && row.state.cfg.plots && row.state.cfg.plots.length), t: row ? row.t : null, ts: row && row.t != null ? tsOf(row.t) : null });
       }
       case 'hello': {
         const row = await deps.load(farmId);
@@ -105,8 +105,8 @@ export function makeHandler(deps) {
         if (!gestor) return fail(403, 'somente o gestor alimenta o gateway');
         const result = await transact(farmId, async row => {
           const ctx = build(row), gw = ctx.gw, lease = leaseOf(ctx.owner, now);
-          if (lease && lease.id !== b.client && !b.takeover) return { abort: true, result: fail(409, 'outra_instancia', { ownerAgeSec: Math.round((now - lease.at) / 1000) }) };
-          ctx.owner = { id: b.client || 'legado', at: now };
+          if (lease && lease.id !== client && !b.takeover) return { abort: true, result: fail(409, 'outra_instancia', { ownerAgeSec: Math.round((now - lease.at) / 1000) }) };
+          ctx.owner = { id: client, at: now };
           gw.cfg.farm = farmInfo;
           const up = !(b.net && b.net.gateway === false);
           if (!ctx.gwUp && up && b.t != null) Object.keys(gw.lastSeen).forEach(k => { gw.lastSeen[k] = b.t; });   // o gateway da fazenda voltou: dá um tempo para os dispositivos reaparecerem
@@ -148,8 +148,8 @@ export function makeHandler(deps) {
         if (!b.state || typeof b.state !== 'object') return fail(400, 'state obrigatório');
         for (let i = 0; i < 4; i++) {
           const row = await deps.load(farmId), st = clone(b.state), lease = row && row.state ? leaseOf(row.state.owner, now) : null;
-          if (lease && lease.id !== b.client && !b.takeover) return fail(409, 'outra_instancia', { ownerAgeSec: Math.round((now - lease.at) / 1000) });
-          st.tickAt = Math.floor(b.t != null ? b.t : (st.now || 0)); st.owner = { id: b.client || 'legado', at: now };
+          if (lease && lease.id !== client && !b.takeover) return fail(409, 'outra_instancia', { ownerAgeSec: Math.round((now - lease.at) / 1000) });
+          st.tickAt = Math.floor(b.t != null ? b.t : (st.now || 0)); st.owner = { id: client, at: now };
           if (await deps.save(farmId, row ? row.version : null, { state: st, t: b.t != null ? b.t : st.now, internet: true, last_ingest_at: new Date(now).toISOString() })) return reply(200, { ok: true });
         }
         return fail(409, 'conflito');
@@ -158,7 +158,7 @@ export function makeHandler(deps) {
         if (!gestor) return fail(403, 'somente o gestor');
         return await transact(farmId, async row => {
           if (!row || !row.state) return { abort: true, result: reply(200, { ok: true, empty: true }) };
-          const ctx = build(row); ctx.owner = { id: b.client || 'legado', at: now };
+          const ctx = build(row); ctx.owner = { id: client, at: now };
           return { ctx, ts: now, row: { state: ctx.save(), t: row.t, internet: row.internet, last_ingest_at: row.last_ingest_at }, result: reply(200, { ok: true }) };
         });
       }

@@ -110,3 +110,20 @@ td{padding:5px 8px;border-top:1px solid var(--line)}
 @media (max-width:760px){body{overflow:auto}.layout{flex-direction:column}.dock{height:auto;min-height:268px}.stage{min-height:260px;flex:none;aspect-ratio:16/9}}
 
 [hidden]{display:none!important}
+
+/* ---------- modo imersivo ---------- */
+.mini{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:40;display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:18px;background:rgba(8,28,18,.74);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.35);transition:opacity .35s;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 24px)}
+.mini.idle{opacity:0;pointer-events:none}
+.mini b{font-size:20px;font-variant-numeric:tabular-nums}.mini .mut{font-size:12px;opacity:.8}.mini .wxp{font-size:12px;font-weight:700;background:rgba(255,255,255,.14);padding:2px 9px;border-radius:12px}
+.mini .btn{background:rgba(255,255,255,.14);border-color:transparent;color:#fff}.mini .btn:hover{background:rgba(255,255,255,.26)}
+body.immersive{overflow:hidden}
+body.immersive .top{display:none}
+body.immersive .layout{position:fixed;inset:0;padding:0;gap:0;flex-direction:column}
+body.immersive .left{gap:0}
+body.immersive .stage{border-radius:0;box-shadow:none;min-height:0}
+body.immersive .stage-hint{display:none}
+body.immersive .dock{position:fixed;left:12px;right:12px;bottom:12px;z-index:35;transform:translateY(calc(100% + 24px));transition:transform .28s ease;box-shadow:0 12px 44px rgba(0,0,0,.45)}
+body.immersive.dock-open .dock{transform:none}
+body.immersive .phonecol{position:fixed;right:16px;bottom:16px;z-index:36;display:none;height:min(780px,calc(100vh - 90px))}
+body.immersive.phone-open .phonecol{display:flex}
+body.immersive .phonecol .phone{max-height:none}
