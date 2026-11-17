@@ -5,7 +5,7 @@ const LOCAL = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
 window.FARM_CONFIG = {
   farmId: 'f1',                                  // só no transporte 'broadcast'; no supabase vem do banco
   transport: LOCAL ? 'broadcast' : 'supabase',
-  appUrl: LOCAL ? '../app-oficial/index.html' : 'https://raiz-app.vercel.app/',   // ajuste para o endereço público do app
+  appUrl: LOCAL ? '../app-oficial/index.html' : 'https://raiz-app-five.vercel.app/',   // ajuste para o endereço público do app
   seed: 20261117
 };
 
