@@ -108,3 +108,5 @@ td{padding:5px 8px;border-top:1px solid var(--line)}
 .pkt{stroke:#fff;stroke-width:1.5;fill:#4fc3f7;filter:drop-shadow(0 0 3px rgba(255,255,255,.8))}.pkt.evt{fill:#ffb300}.pkt.cmd{fill:#66bb6a}
 
 @media (max-width:760px){body{overflow:auto}.layout{flex-direction:column}.dock{height:auto;min-height:268px}.stage{min-height:260px;flex:none;aspect-ratio:16/9}}
+
+[hidden]{display:none!important}

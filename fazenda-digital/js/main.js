@@ -11,7 +11,7 @@ if (q.get('farm')) cfg.farmId = q.get('farm'); if (q.get('transport')) cfg.trans
 
 /* ---------- mundo, gateway, canal ---------- */
 const S = Sim.create({ seed: cfg.seed });
-let fast = false, appSeen = 0, link = null, selPlot = 't1', tab = 'amb', logPaused = false, logSeq = 0, hbSeq = 0;
+let fast = false, appSeen = 0, link = null, selPlot = 't1', tab = 'amb', logPaused = false, logSeq = 0;
 const logs = [], openLogs = new Set(), filt = { tel: true, evt: true, cmd: true, sim: true }, sched = [];
 const visual = () => !fast && S.speed <= 15 && !document.hidden;
 const CAT = { telemetry: 'tel', heartbeat: 'tel', command: 'cmd', 'command.ack': 'cmd' };
@@ -29,55 +29,131 @@ try {
   });
 } catch (e) { console.error(e); setTimeout(() => { $('#hint').textContent = 'Canal indisponível: ' + e.message; }, 0); }
 
+/* Dois gateways com as mesmas regras (shared/gateway-core.js):
+   • nuvem (Edge Function do Supabase) — manda quando há internet: a fazenda envia as leituras em lotes e recebe as ordens na resposta;
+   • local (aqui no navegador, como o gateway instalado na fazenda) — assume sem internet ou se a nuvem falhar, e devolve o estado quando a internet volta. */
+const SUPA = !!link && link.transport === 'supabase';
+let mode = 'local', E = null, booted = false, farmInfo = null, retryAt = 0, readOnly = false, gwWasUp = true;
+const call = (op, body) => link.invoke('gateway', Object.assign({ op, farm_id: farmInfo.id }, body));
+
 function toApp(type, payload) {
-  if (!S.net.gateway || !link) return;
+  if (!S.net.gateway || !link || mode === 'edge') return;
   link.send(type, payload, Sim.tsOf(S.t));
   if (visual() && type !== 'telemetry' && type !== 'heartbeat') Scene.fly('gw', 'app', 'evt');
 }
-let farmInfo = null;
 const gw = Gw.create(S, toApp);
 const helloMsg = () => { const h = gw.hello(); if (farmInfo) h.farm = { id: farmInfo.id, name: farmInfo.name, city: farmInfo.city || '' }; return h; };
 S.hooks.telemetry = (d, v) => {
   if (visual()) { Scene.flash(d.id); Scene.fly(d.id, 'gw', 'tel', () => { if (visual() && S.net.gateway) Scene.fly('gw', 'app', 'tel'); }); }
-  if (S.net.gateway) gw.ingest(d, v);
+  if (!S.net.gateway) return;
+  if (mode === 'edge') E.push(d, v); else gw.ingestDev(d, v);
 };
 S.hooks.log = (m, k) => { if (!logPaused) addLog({ dir: 'sim', t: Sim.hhmm(S.t), type: k === 'bad' ? 'alerta' : 'simulação', payload: m, cat: 'sim', bad: k === 'bad' }); };
 S.hooks.zone = () => { };
 
-let gwWasUp = true;
+async function toEdge() {
+  mode = 'sync';
+  try {
+    const r = await call('sync', { state: gw.exportState(), t: S.t });
+    if (!r || !r.ok) throw new Error((r && r.error) || 'sem resposta');
+    gw.muted = true; E.needConfig = false; E.fails = 0; E.queue.length = 0; E.acks.length = 0; mode = 'edge';
+    S.hooks.log('Gateway na nuvem (Edge Function) assumiu', 'sim');
+  } catch (e) { mode = 'local'; retryAt = Date.now() + 15000; S.hooks.log('Edge Function indisponível — seguindo no gateway local (' + e.message + ')', 'bad'); }
+}
+function toLocal() {
+  if (E.lastState) gw.importState(E.lastState);
+  gw.muted = false; mode = 'local'; E.queue.length = 0; E.acks.length = 0;
+  if (S.net.internet) retryAt = Date.now() + 15000; else E.flush({ internet: false });      // avisa a nuvem (simulação) antes de silenciar
+  E.fails = 0; S.hooks.log(S.net.internet ? 'Nuvem indisponível — o gateway local assumiu' : 'Sem internet — o gateway local assumiu', 'sim');
+}
+function modeCheck() {
+  if (!SUPA || !E || !booted || readOnly) return;
+  if (mode === 'edge' && (!S.net.internet || E.fails >= 3)) toLocal();
+  else if (mode === 'local' && S.net.internet && Date.now() > retryAt) toEdge();
+}
+
 function stepAll() {
   Sim.step(S, 1);
-  if (S.net.gateway) { if (!gwWasUp) { S.devices.forEach(d => { gw.lastSeen[d.id] = S.t; }); gw.prevNet = S.net.internet; } gw.tick(); }
+  if (S.net.gateway) {
+    if (!gwWasUp) { S.devices.forEach(d => { gw.lastSeen[d.id] = S.t; }); gw.prevNet = S.net.internet; if (mode === 'edge') E.flush(); }
+    if (mode !== 'edge') gw.tick(S.t);
+  } else if (gwWasUp && mode === 'edge') E.flush();                      // simulação: a fazenda avisa a nuvem que o gateway local caiu
   gwWasUp = S.net.gateway;
+  modeCheck();
   for (let i = sched.length - 1; i >= 0; i--) if (S.t >= sched[i].at) { const f = sched[i].fn; sched.splice(i, 1); f(); }
 }
 
 /* histórico de 24 h: roda a simulação antes de abrir o canal */
-gw.muted = true; fast = true;
-for (let i = 0; i < 1440; i++) stepAll();
-gw.muted = false; fast = false; logs.length = 0; S.t = Math.round(S.t); gw.forecastAt = S.t - 999;
+function prerun() {
+  gw.muted = true; fast = true;
+  for (let i = 0; i < 1440; i++) stepAll();
+  gw.muted = false; fast = false; logs.length = 0; S.t = Math.round(S.t); gw.forecastAt = S.t - 999;
+}
+
+async function saveSim() {
+  if (!SUPA || !booted || readOnly || mode === 'sync') return;
+  try { await link.sb.from('sim_state').upsert({ farm_id: farmInfo.id, state: { sim: Sim.snapshot(S), gw: (mode === 'edge' && E.lastState) || gw.exportState() }, updated_at: new Date().toISOString() }); } catch (e) { console.warn('[sim_state]', e); }
+}
+async function resetAll() {
+  if (!confirm('Reiniciar a simulação do zero? A fazenda volta ao dia 1 e o histórico de alertas do gateway é apagado.')) return;
+  if (SUPA && booted && !readOnly) { try { await call('reset'); await link.sb.from('sim_state').delete().eq('farm_id', farmInfo.id); } catch (e) { console.warn(e); } }
+  location.reload();
+}
+
+async function bootSupa() {
+  let info;
+  try { info = await link.ready; } catch (e) { $('#hint').textContent = 'Sem conexão com a nuvem: ' + e.message; return; }
+  farmInfo = info.farm;
+  if (info.role !== 'gestor') { readOnly = true; S.running = false; booted = true; $('#hint').textContent = 'Somente o gestor opera a Fazenda Digital. Abra o app para acompanhar.'; return; }
+  let restored = false;
+  try {
+    const { data } = await link.sb.from('sim_state').select('state').eq('farm_id', farmInfo.id).maybeSingle();
+    if (data && data.state && Sim.restore(S, data.state.sim)) { if (data.state.gw) gw.importState(data.state.gw); restored = true; gwWasUp = S.net.gateway; S.hooks.log('Simulação retomada de onde parou', 'sim'); }
+  } catch (e) { console.warn(e); }
+  if (!restored) prerun();
+  E = FarmEdge.create({ S, call });
+  try {
+    const st = await call('status');
+    if (!restored || !st.hasState) { const r = await call('sync', { state: gw.exportState(), t: S.t }); if (!r || !r.ok) throw new Error((r && r.error) || 'sync'); }
+    E.needConfig = false;
+    if (S.net.internet) { gw.muted = true; mode = 'edge'; S.hooks.log('Gateway na nuvem (Edge Function) ativo', 'sim'); }
+  } catch (e) { mode = 'local'; retryAt = Date.now() + 15000; S.hooks.log('Edge Function indisponível — gateway local ativo (' + e.message + ')', 'bad'); }
+  booted = true; setInterval(saveSim, 15000);
+}
 
 if (link) {
   link.on(m => {
     if (m.type === 'app.ping') { appSeen = Date.now(); return; }
-    if (m.type === 'hello.request') { appSeen = Date.now(); toApp('hello', helloMsg()); return; }
+    if (m.type === 'hello.request') { appSeen = Date.now(); if (mode !== 'edge') toApp('hello', helloMsg()); return; }
     if (m.type === 'command') {
       appSeen = Date.now();
+      if (mode === 'edge') { S.hooks.log('Comando recebido pelo canal local ignorado: com internet a nuvem decide', 'bad'); return; }
       if (!S.net.gateway) { S.hooks.log('Comando ' + (m.payload && m.payload.cmd) + ' perdido: o gateway está fora do ar', 'bad'); return; }
       if (visual()) Scene.fly('app', 'gw', 'cmd', () => { if (/^pump\./.test(m.payload.cmd)) Scene.fly('gw', 'pc-01', 'cmd'); });
       gw.command(m.payload || {}); refresh(true);
     }
   });
-  setInterval(() => { if (S.net.gateway) link.send('heartbeat', gw.heartbeat(), Sim.tsOf(S.t)); }, 2000);
-  link.ready.then(info => { farmInfo = info.farm || null; setTimeout(() => toApp('hello', helloMsg()), 300); }).catch(() => { });
+  if (SUPA) bootSupa();
+  else { link.ready.then(info => { farmInfo = info.farm || null; setTimeout(() => toApp('hello', helloMsg()), 300); }).catch(() => { }); prerun(); booted = true; }
 }
 
-/* ---------- laço principal ---------- */
+/* ---------- laço principal ----------
+   Roda num Web Worker: o navegador atrasa timers de abas em segundo plano (e a conexão com o gateway "caía"),
+   mas mensagens vindas de um Worker não são atrasadas. */
+let tickN = 0, lastTick = performance.now();
 function advance(n) { for (let i = 0; i < n; i++) stepAll(); }
-setInterval(() => {
-  if (S.running && S.speed > 0) { S.acc += S.speed * .5; const n = Math.min(Math.floor(S.acc), 40); S.acc -= Math.floor(S.acc); advance(n); }
+function onTick() {
+  tickN++;
+  const now = performance.now(), dt = Math.min(5, (now - lastTick) / 1000); lastTick = now;
+  if (booted && !readOnly && S.running && S.speed > 0) { S.acc += S.speed * dt; const n = Math.min(Math.floor(S.acc), 120); S.acc -= Math.floor(S.acc); advance(n); }
   refresh(false);
-}, 500);
+  if (booted && mode === 'edge' && S.net.gateway && tickN % 3 === 0) E.flush();                                   // a cada ~1,5 s
+  if (booted && link && mode !== 'edge' && S.net.gateway && tickN % 4 === 0) link.send('heartbeat', gw.heartbeat(), Sim.tsOf(S.t));
+}
+try {
+  const w = new Worker(URL.createObjectURL(new Blob(['let id;onmessage=e=>{clearInterval(id);id=setInterval(()=>postMessage(0),e.data)}'], { type: 'text/javascript' })));
+  w.onmessage = onTick; w.postMessage(500);
+} catch (e) { setInterval(onTick, 500); }
 setInterval(() => { if (S.wx.kind === 'storm' && !document.hidden && Math.random() < .55) Scene.lightning(); }, 5200);
 
 /* ---------- interface ---------- */
@@ -85,7 +161,7 @@ const SPEEDS = [[0, '⏸'], [1, '1'], [2, '2'], [5, '5'], [15, '15'], [60, '60']
 const WXBTN = [['auto', 'Automático'], ['sun', 'Ensolarado'], ['part', 'Parcial'], ['cloud', 'Nublado'], ['rain', 'Chuva'], ['storm', 'Tempestade'], ['heat', 'Onda de calor']];
 const TABS = [['amb', 'Ambiente'], ['flt', 'Falhas e cenários'], ['dev', 'Dispositivos'], ['log', 'Sinais']];
 const setFault = (key, plot, on) => { if (Sim.faults.isOn(S, key, plot) !== on) Sim.faults.toggle(S, key, plot); };
-const refreshForecast = () => { gw.forecastAt = -9999; if (S.net.gateway) gw.tick(); };
+const refreshForecast = () => { if (mode === 'edge') { E.lastForecastAt = -1e9; E.flush(); } else { gw.forecastAt = -9999; if (S.net.gateway) gw.tick(S.t); } };
 const SCN = [
   ['Dia seco e quente', 'Onda de calor, sem chuva à vista', () => { S.wx.mode = 'manual'; S.wx.manual = 'heat'; S.forecastOverride = 3; refreshForecast(); }],
   ['Chuva forte em 2 h', 'Tempestade agendada; previsão sobe', () => { S.wx.mode = 'auto'; S.forecastOverride = null; S.plan.push({ s: S.t + 120, e: S.t + 220, kind: 'storm' }); S.plan.sort((a, b) => a.s - b.s); refreshForecast(); }],
@@ -112,7 +188,8 @@ function renderPanel() {
         <div class="hint">A simulação só avança no tempo; todos os dispositivos e o gateway acompanham.</div></div>
       <div class="box"><h3>Previsão do tempo (serviço de internet)</h3><div class="row"><label class="chk"><input type="checkbox" id="fcOn" ${S.forecastOverride != null ? 'checked' : ''}> Forçar chuva prevista:</label><b id="fcVal" class="num">${S.forecastOverride ?? '—'}${S.forecastOverride != null ? '%' : ''}</b></div>
         <input class="sl" type="range" id="fcRange" min="0" max="100" step="5" value="${S.forecastOverride ?? 20}" ${S.forecastOverride != null ? '' : 'disabled'}>
-        <div class="hint">Acima do limite do Raiz (60%), a recomendação vira “aguardar chuva”.</div></div></div>`;
+        <div class="hint">Acima do limite do Raiz (60%), a recomendação vira “aguardar chuva”.</div>
+        <div class="row" style="margin-top:12px"><button class="btn" data-act="reset">Reiniciar simulação do zero</button></div></div></div>`;
   } else if (tab === 'flt') {
     const f = Sim.faults.list(S, selPlot), on = (k, pl) => Sim.faults.isOn(S, k, pl);
     p.innerHTML = `<div class="cols">
@@ -155,7 +232,7 @@ function refresh(now) {
   $('#clkTime').textContent = Sim.hhmm(S.t); $('#clkDate').textContent = Sim.dateLabel(S.t);
   $('#clkWx').textContent = `${Sim.KINDS[S.wx.kind].label} · ${fmt(S.wx.temp, 0)} °C`;
   const set = (id, cls, txt) => { const e = $(id); e.className = 'pill ' + cls; if (txt) e.lastChild.textContent = txt; };
-  set('#hGw', S.net.gateway ? 'ok' : 'bad', S.net.gateway ? 'Gateway online' : 'Gateway fora do ar');
+  set('#hGw', S.net.gateway ? (mode === 'local' && SUPA ? 'warn' : 'ok') : 'bad', !S.net.gateway ? 'Gateway fora do ar' : !SUPA ? 'Gateway online' : mode === 'edge' ? 'Gateway: nuvem (Edge)' : mode === 'sync' ? 'Gateway: trocando…' : 'Gateway: local');
   set('#hNet', S.net.internet ? 'ok' : 'warn', S.net.internet ? 'Internet' : 'Sem internet');
   const appOn = Date.now() - appSeen < 9000; set('#hApp', appOn ? 'ok' : 'warn', appOn ? 'App conectado' : 'App aguardando');
   Scene.update(S); renderSpeed();
@@ -181,6 +258,7 @@ document.addEventListener('click', e => {
     case 'infra': Sim.faults.toggle(S, v, null); refresh(true); break;
     case 'clear': Sim.faults.clearAll(S); sched.length = 0; refresh(true); break;
     case 'scn': SCN[+v][2](); refresh(true); break;
+    case 'reset': resetAll(); break;
     case 'logpause': logPaused = !logPaused; renderPanel(); break;
     case 'logclear': logs.length = 0; renderPanel(); break;
   }
@@ -225,5 +303,5 @@ else {                                                       // hospedado: o app
 }
 
 renderTabs(); renderPanel(); refresh(true);
-window.__farm = { S, gw, link, Sim, Scene, advance };
+window.__farm = { S, gw, link, Sim, Scene, advance, get E() { return E; }, get mode() { return mode; } };
 })();

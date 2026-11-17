@@ -32,6 +32,9 @@
   const dev = id => D.devices.find(d => d.id === id);
   let farmNow = 0, lastMsg = 0, structural = false, dirty = false, timers = false, lastRender = 0, down = false, cidSeq = 0;
   const pending = {};
+  const SUPA = () => !!link && link.transport === 'supabase';
+  const edge = { ok: false, fails: 0, internet: true, farmAge: null };            // estado do gateway na nuvem (Edge Function)
+  const call = async body => { await link.ready; return link.invoke('gateway', Object.assign({ farm_id: link.farmId }, body)); };
 
   const ago = ts => { if (!ts || !farmNow) return '—'; const m = Math.round((farmNow - ts) / 60000); return m < 1 ? 'agora' : m < 90 ? `há ${m} min` : `há ${Math.round(m / 60)} h`; };
   const UI = () => window.Raiz;
@@ -82,7 +85,9 @@
   function onMessage(m) {
     if (!m || m.v !== 1 || m.src !== 'farm') return;
     L.stats.in++; lastMsg = Date.now(); if (m.ts) farmNow = Math.max(farmNow, m.ts);
-    if (D.net.gateway !== 'online' && L.connected) { D.net.gateway = 'online'; mark(true); link.send('hello.request', { app: 'raiz-app' }); }
+    const gwDown = m.type === 'heartbeat' && m.payload && m.payload.gateway === 'offline';              // a fazenda avisou que o gateway local caiu
+    if (gwDown) { if (D.net.gateway !== 'offline') { D.net.gateway = 'offline'; mark(true); } }
+    else if (D.net.gateway !== 'online' && L.connected) { D.net.gateway = 'online'; mark(true); askHello(); }
     const p = m.payload;
     switch (m.type) {
       case 'hello': applyHello(p); break;
@@ -92,7 +97,7 @@
         Object.assign(D.net, { internet: p.internet, pending: p.pending, lastSync: ls }); refreshSeen(); break;
       }
       case 'device.status': { const d = dev(p.device); if (d) { d.status = p.status; d._ts = p.seen || d._ts; const pl = d.plot && plot(d.plot); if (pl && d.type === 'soil' && p.status === 'offline') { pl.moisture = null; pl._mts = d._ts; } mark(true); refreshSeen(); } break; }
-      case 'alert.new': if (!D.alerts.some(a => a.id === p.id)) { D.alerts.unshift(p); mark(true); if (p.state !== 'resolvido') toast(p.title, 'bad'); } break;
+      case 'alert.new': if (!D.alerts.some(a => a.id === p.id)) { D.alerts.unshift(p); mark(true); if (p.state !== 'resolvido') { toast(p.title, p.sev === 'info' ? '' : 'bad'); notify(p); } } break;
       case 'alert.update': { const a = D.alerts.find(x => x.id === p.id); if (a) { Object.assign(a, p.patch); mark(true); } break; }
       case 'recommendation': { const pl = plot(p.plot); if (pl) { pl.rec = p.rec; mark(true); } break; }
       case 'forecast': D.weather.rainProb = p.rainProb; D.weather.hourly = p.hourly; mark(true); break;
@@ -104,12 +109,24 @@
 
   /* ---------- envio de comandos ---------- */
   const CMD = new Set(['pump.start', 'pump.stop', 'pump.emergency', 'pump.rearm', 'recommendation.refuse', 'alert.confirm', 'alert.discard', 'alert.maintenance', 'device.restart', 'sync.now', 'settings.update']);
-  function sendCmd(cmd, args) {
+  async function sendCmd(cmd, args) {
     if (!link) { toast('Canal com a fazenda indisponível', 'bad'); return; }
     if (cmd === 'settings.update' && !(args && args.rules)) return;               // tema/notificações são locais
+    if ((cmd === 'alert.confirm' || cmd === 'alert.discard' || cmd === 'alert.maintenance') && String(args && args.id).startsWith('local-')) { localAlert(args.id, cmd); return; }
     const cid = 'c' + Date.now().toString(36) + (++cidSeq);
-    pending[cid] = setTimeout(() => { delete pending[cid]; toast('Sem resposta do gateway — o comando pode não ter chegado', 'bad'); }, 6000);
-    link.send('command', { cid, cmd, args: args || {} }); L.stats.out++;
+    pending[cid] = setTimeout(() => { delete pending[cid]; toast('Sem resposta do gateway — o comando pode não ter chegado', 'bad'); }, 9000);
+    if (SUPA() && edge.ok && edge.internet) {                                      // com internet: a Edge Function valida (perfil, limites) e executa
+      try {
+        const r = await call({ op: 'command', cid, cmd, args: args || {} }); L.stats.out++;
+        if (r && r.ok) return;                                                      // a confirmação chega pelo Realtime (command.ack)
+        if (!r || (r.error !== 'local' && r.error !== 'sem_dados')) {
+          clearTimeout(pending[cid]); delete pending[cid];
+          if (r && r.error !== 'fazenda_sem_sinal') toast((r && (r.text || r.error)) || 'Comando recusado', 'bad');   // 'fazenda_sem_sinal' já vem com ack explicando
+          return;
+        }
+      } catch (e) { console.warn('[Raiz live] edge indisponível, usando a rede local', e); }
+    }
+    link.send('command', { cid, cmd, args: args || {} }); L.stats.out++;           // sem internet: gateway local, pela rede da fazenda
   }
   B.on((type, payload) => {
     if (L.devAuth && type === 'auth.pin') setTimeout(() => UI().receive({ type: payload && payload.pin === cfg.devPin ? 'auth.ok' : 'auth.fail' }), 200);
@@ -117,6 +134,49 @@
     else if (type === 'logout' && link && link.transport === 'supabase') link.signOut();
     else if (CMD.has(type)) sendCmd(type, payload);
   });
+
+  /* ---------- gateway na nuvem: status por consulta (não depende da aba da fazenda estar ativa) ---------- */
+  async function invokeHello() {
+    try { const r = await call({ op: 'hello' }); if (r && r.ok && r.hello) { applyHello(r.hello); return true; } } catch (e) { }
+    return false;
+  }
+  function askHello() { if (link) link.send('hello.request', { app: 'raiz-app' }); if (SUPA()) invokeHello(); }
+  function localAlert(id, how) {                                                    // alertas gerados pelo próprio app (ex.: fazenda sem dados)
+    const a = D.alerts.find(x => x.id === id); if (!a) return;
+    if (how === 'alert.maintenance') { toast('Este alerta não depende de manutenção do gateway', 'bad'); return; }
+    a.state = 'resolvido'; mark(true); toast(how === 'alert.confirm' ? 'Alerta confirmado' : 'Alerta descartado');
+  }
+  function silentAlert(age) {
+    const id = 'local-silent', a = D.alerts.find(x => x.id === id);
+    if (age != null && age > 25) {
+      const msg = `Nenhuma leitura chegou da fazenda há ${age} s. O gateway na nuvem está ativo, mas os dispositivos (ou a internet da fazenda) não estão enviando dados — os valores na tela podem estar desatualizados. Ação: confira energia, internet e o gateway da fazenda.`;
+      if (!a) { const n = { id, sev: 'warn', plot: null, state: 'aberto', title: 'Sem dados da fazenda', time: 'Agora', msg }; D.alerts.unshift(n); mark(true); toast(n.title, 'bad'); notify(n); }
+      else if (a.state === 'resolvido' && age > 40) { a.state = 'aberto'; a.msg = msg; mark(true); toast(a.title, 'bad'); }
+      else if (a.state === 'aberto') { a.msg = msg; mark(); }
+    } else if (a && a.state === 'aberto' && (age == null || age < 12)) { a.state = 'resolvido'; a.msg += ' Os dados voltaram.'; mark(true); }
+  }
+  function notify(a) {
+    try { if (document.hidden && 'Notification' in window && Notification.permission === 'granted' && D.settings.notif.alerts) new Notification(a.title, { body: String(a.msg || '').slice(0, 140), tag: a.id }); } catch (e) { }
+  }
+  async function pollStatus() {
+    if (!SUPA()) return;
+    try {
+      const r = await call({ op: 'status' });
+      if (!r || !r.gateway) throw new Error((r && r.error) || 'sem resposta');
+      edge.ok = true; edge.fails = 0; edge.internet = r.internet !== false; edge.farmAge = r.farmAgeSec;
+      if (r.ts) farmNow = Math.max(farmNow, r.ts);
+      if (!L.connected) return;
+      if (!edge.internet) { if (D.net.internet) { D.net.internet = false; mark(true); } return; }                // fazenda sem internet: quem fala é o gateway local (mensagens)
+      const up = r.gateway === 'online' ? 'online' : 'offline', ls = ago(r.lastSync);
+      if (D.net.gateway !== up) { D.net.gateway = up; mark(true); if (up === 'online') invokeHello(); }
+      if (!D.net.internet || D.net.pending !== r.pending || D.net.lastSync !== ls) mark(true);
+      Object.assign(D.net, { internet: true, pending: r.pending, lastSync: ls });
+      if (r.hasState) silentAlert(r.farmAgeSec);
+    } catch (e) {
+      edge.fails++; console.warn('[Raiz live] status', e);
+      if (edge.fails >= 3 && D.net.gateway === 'online') { D.net.gateway = 'offline'; mark(true); }          // o celular perdeu a conexão com a nuvem
+    }
+  }
 
   /* ---------- ciclo: conexão, redesenho com calma, gateway fora do ar ---------- */
   window.addEventListener('load', () => {
@@ -127,13 +187,14 @@
       if (info.email) { D.user.name = info.email; D.user.initials = info.email.slice(0, 2).toUpperCase(); }
       mark(true);
     }).catch(() => { });
-    const hello = () => link.send('hello.request', { app: 'raiz-app' });
-    hello(); setInterval(() => { if (!L.connected) hello(); }, 2500);
+    askHello(); setInterval(() => { if (!L.connected) askHello(); }, 2500);
+    if (SUPA()) { link.ready.then(pollStatus).catch(() => { }); setInterval(pollStatus, 6000); document.addEventListener('visibilitychange', () => { if (!document.hidden) pollStatus(); }); }
     setInterval(() => link.send('app.ping', { app: 'raiz-app' }), 4000); link.send('app.ping', { app: 'raiz-app' });
     document.addEventListener('pointerdown', () => { down = true; }, true);
     ['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => { down = false; }, true));
     setInterval(() => {
-      if (L.connected && D.net.gateway === 'online' && Date.now() - lastMsg > 6500) { D.net.gateway = 'offline'; mark(true); }
+      const cloud = SUPA() && edge.ok && edge.internet;                          // na nuvem a presença vem do status; em rede local, das mensagens
+      if (!cloud && L.connected && D.net.gateway === 'online' && Date.now() - lastMsg > (SUPA() ? 12000 : 6500)) { D.net.gateway = 'offline'; mark(true); }
       if (!dirty && !timers) return;
       if (down) return;                                                          // não redesenha no meio de um toque
       const now = Date.now();

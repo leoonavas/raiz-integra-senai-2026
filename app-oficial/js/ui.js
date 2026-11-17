@@ -305,7 +305,7 @@ function doAct(act, el) {
     case 'bio': if (D.settings.biometrics) { B.emit('auth.biometric'); if (MOCK()) { UI.stage = 'app'; render(); } } break;
     case 'logout': B.emit('logout'); UI.stage = 'login'; UI.pin = ''; render(); break;
     case 'theme': UI.theme = d.t; try { localStorage.setItem('raiz-theme', d.t); } catch (e) { } B.emit('settings.update', { theme: d.t }); render(); break;
-    case 'notif': D.settings.notif[d.key] = !D.settings.notif[d.key]; B.emit('settings.update', { notif: D.settings.notif }); render(); break;
+    case 'notif': D.settings.notif[d.key] = !D.settings.notif[d.key]; if (d.key === 'alerts' && D.settings.notif.alerts && 'Notification' in window && Notification.permission === 'default') { try { Notification.requestPermission(); } catch (e) { } } B.emit('settings.update', { notif: D.settings.notif }); render(); break;
     case 'bioset': D.settings.biometrics = !D.settings.biometrics; B.emit('settings.update', { biometrics: D.settings.biometrics }); render(); break;
     case 'thr': openSheet('thr'); break;
     case 'thr-save': B.emit('settings.update', { rules: D.settings }); closeSheet(); cmdToast('Regras salvas'); render(); break;

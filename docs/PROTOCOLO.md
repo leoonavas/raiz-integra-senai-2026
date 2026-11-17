@@ -78,6 +78,37 @@ Comandos (`cmd` → `args`) — são os mesmos eventos da ponte nativa do app (`
 
 Todo comando recebe um `command.ack` com o mesmo `cid`. O app **não** altera o estado por conta própria: a bomba só aparece ligada quando o controlador informa pela telemetria. Sem `ack` em 6 s, o app avisa que o comando pode não ter chegado.
 
+## Gateway na nuvem (Edge Function) × gateway local
+
+Com **internet**, quem decide é a Edge Function `gateway` (Supabase); sem internet (ou se a função falhar), o **gateway local** da fazenda assume — as duas versões usam o mesmo núcleo de regras (`shared/gateway-core.js`). Quando a internet volta, o local entrega o estado à nuvem (`sync`).
+
+`POST /functions/v1/gateway` com `Authorization: Bearer <JWT do usuário>` e corpo `{ op, farm_id, … }`:
+
+| `op` | Quem | O que faz |
+|---|---|---|
+| `ingest` | gestor (a fazenda) | `{ t, readings[], acks[], net:{internet,gateway}, forecast?, config? }` → aplica as regras, grava o estado, publica alertas/telemetria no canal Realtime. Resposta: `{ ok, actuate:[{cid,cmd,args}], state? }` — as **ordens para o controlador** vêm aqui (HTTP), sem depender do WebSocket |
+| `command` | membro (app) | valida perfil (`settings.update` só gestor), fazenda com sinal (< 45 s), e enfileira a ordem. `ok:false, error:'local'` = fazenda sem internet → o app usa o canal local |
+| `hello` | membro | estado completo para abrir/reconectar o app |
+| `status` | membro | `{ gateway, internet, farmAgeSec, pending, lastSync, hasState }` — o app consulta a cada 6 s; é daqui que vem “gateway online” |
+| `sync` / `reset` | gestor | passagem de bastão local → nuvem / apagar o estado |
+
+Tabelas: `gateway_state` (estado do gateway, só a função escreve) e `sim_state` (a simulação da Fazenda Digital continua de onde parou ao recarregar).
+
+## Alertas — tudo que exige ação do usuário
+
+O gateway abre um alerta (aba *Alertas*, selo no ícone, aviso na tela) quando o usuário precisa fazer algo ou ficar ciente:
+
+| Situação | Alerta | Some quando |
+|---|---|---|
+| Umidade < limiar sem irrigação | **Umidade baixa** (e **crítica** abaixo de limiar−5) — diz quanto irrigar, ou que é melhor aguardar chuva | irrigação inicia ou a umidade recupera |
+| Vazão fora da tolerância | Entupimento / vazamento | confirmação do usuário |
+| Bomba bloqueada (emergência) / a seco | **Bomba bloqueada** / funcionamento a seco | bomba rearmada |
+| Controlador sem energia | Falta de energia | energia volta |
+| Sensor, medidor, estação ou controlador mudo | Sem comunicação | volta a enviar |
+| Bateria ≤ 15% | Bateria baixa | bateria > 30% |
+| Fazenda sem internet | Sem internet — operando em modo local | internet volta |
+| Nenhum dado chega da fazenda (> 25 s) | **Sem dados da fazenda** — gerado pelo próprio app | os dados voltam |
+
 ## Regras que o gateway aplica
 
 - **Recomendação:** umidade < limiar → `go` (duração para chegar ao alvo, em múltiplos de 5 min, limitada ao tempo máximo) ou `wait` se a previsão de chuva ≥ limite ou se estiver chovendo. Histerese de 2 pontos para sair.
@@ -111,6 +142,6 @@ Todo comando recebe um `command.ack` com o mesmo `cid`. O app **não** altera o 
 
 ### Limites desta etapa
 
-- O gateway simulado ainda roda **no navegador** (aba da fazenda aberta). O próximo passo é movê-lo para uma Edge Function/worker.
-- O Realtime Broadcast não valida o conteúdo: qualquer membro pode enviar qualquer mensagem. A validação de perfil (ex.: só `gestor` altera limiares) ainda não é imposta pelo servidor — precisa passar por tabela `commands` + função/gatilho.
+- Os **dispositivos** (sensores, controlador) continuam simulados no navegador da Fazenda Digital: se a aba fechar, a nuvem segue de pé, mas sem leituras novas — o app avisa com o alerta “Sem dados da fazenda”. O gateway e as regras já rodam na nuvem.
+- O Realtime Broadcast em si não valida conteúdo (qualquer membro poderia publicar no canal). Os **comandos**, porém, passam pela Edge Function, que valida perfil e estado; para fechar o canal por completo, o app deveria apenas receber (política de envio só para a função).
 - Comandos de bomba **não** podem depender só da interface: validar perfil, limites e energia no servidor/gateway (como já faz `gateway.js`).

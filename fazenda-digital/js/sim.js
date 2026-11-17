@@ -57,7 +57,7 @@ function create(opts) {
   const o = opts || {};
   const S = {
     t: 330, speed: 2, running: true, acc: 0,
-    rng: mulberry32(o.seed || 20261117),
+    seed: o.seed || 20261117, rng: mulberry32(o.seed || 20261117),
     wx: { mode: 'auto', manual: 'sun', kind: 'sun', cloud: .08, rain: 0, temp: 21.3, hum: 70, wind: 8 },
     plan: [], planDay: -1, forecastOverride: null,
     plots: PLOT_DEFS.map(d => Object.assign({}, d, { m: d.m0, clog: false, leak: false, total: 0 })),
@@ -238,6 +238,54 @@ const act = {
   }
 };
 
+
+/* conserto de uma falha (manutenção concluída). key = chave do alerta do gateway */
+function fix(S, key) {
+  const id = key.split(':')[1] || '';
+  if (key.startsWith('low:')) { const p = S.plots.find(x => x.id === id); if (p) p.clog = false; }
+  else if (key.startsWith('high:')) { const p = S.plots.find(x => x.id === id); if (p) p.leak = false; }
+  else if (key.startsWith('off:')) { const d = dev(S, id); if (d) { d.forcedOff = false; if (!d.restartUntil) d.online = true; } }
+  else if (key.startsWith('batt:')) { const d = dev(S, id); if (d) { d.lowBatt = false; d.batt = 100; } }
+  else if (key === 'dry') S.pump.wellDry = false;
+  else if (key === 'power') S.pump.power = true;
+  S.hooks.log('Manutenção concluída: ' + key, 'sim');
+}
+
+
+/* execução de um pedido no controlador (usado pelo gateway local e pelo pedido 'actuate' vindo da nuvem) */
+function actuate(S, cmd, a) {
+  a = a || {};
+  switch (cmd) {
+    case 'pump.start': return act.start(S, a.plot, a.minutes);
+    case 'pump.stop': return act.stop(S, a.plot);
+    case 'pump.emergency': return act.emergency(S);
+    case 'pump.rearm': return act.rearm(S);
+    case 'device.restart': return act.restart(S, a.id);
+    case 'fix': fix(S, a.key); return { ok: true };
+    default: return { ok: false, text: 'Comando desconhecido.' };
+  }
+}
+
+/* instantâneo da simulação (para continuar de onde parou ao recarregar a página) */
+function snapshot(S) {
+  return {
+    v: 1, t: S.t, speed: S.speed, wx: Object.assign({}, S.wx), plan: S.plan, planDay: S.planDay, forecastOverride: S.forecastOverride,
+    plots: S.plots.map(p => ({ id: p.id, m: p.m, clog: p.clog, leak: p.leak, total: p.total, grow: p.grow })),
+    zones: JSON.parse(JSON.stringify(S.zones)), pump: Object.assign({}, S.pump), net: Object.assign({}, S.net),
+    devices: S.devices.map(d => ({ id: d.id, online: d.online, forcedOff: d.forcedOff, lowBatt: d.lowBatt, restartUntil: d.restartUntil, lastEmit: d.lastEmit, batt: d.batt, rssi: d.rssi }))
+  };
+}
+function restore(S, o) {
+  if (!o || o.v !== 1) return false;
+  S.t = o.t; S.speed = o.speed || S.speed; Object.assign(S.wx, o.wx); S.plan = o.plan || []; S.planDay = o.planDay; S.forecastOverride = o.forecastOverride;
+  (o.plots || []).forEach(q => { const p = S.plots.find(x => x.id === q.id); if (p) Object.assign(p, q); });
+  Object.keys(o.zones || {}).forEach(k => { if (S.zones[k]) Object.assign(S.zones[k], o.zones[k]); });
+  Object.assign(S.pump, o.pump); Object.assign(S.net, o.net);
+  (o.devices || []).forEach(q => { const d = S.devices.find(x => x.id === q.id); if (d) Object.assign(d, q); });
+  S.rng = mulberry32(((S.seed || 20261117) + Math.max(0, S.planDay)) >>> 0);     // a semente continua de onde o plano parou
+  ensurePlan(S); return true;
+}
+
 /* ---------- falhas injetáveis ---------- */
 const faults = {
   list(S, plotId) {
@@ -274,7 +322,7 @@ const faults = {
   }
 };
 
-const Sim = { create, step, forecast, act, faults, emitNow, dev, KINDS, PLOT_DEFS, DEV_DEFS, activeZones, flowTruth, pressTruth, tsOf, hhmm, when, dateLabel, hourOf, dayOf, elev, baseTemp, ensurePlan };
+const Sim = { create, step, forecast, act, fix, actuate, snapshot, restore, faults, emitNow, dev, KINDS, PLOT_DEFS, DEV_DEFS, activeZones, flowTruth, pressTruth, tsOf, hhmm, when, dateLabel, hourOf, dayOf, elev, baseTemp, ensurePlan };
 root.FarmSim = Sim;
 if (typeof module !== 'undefined') module.exports = Sim;
 })(typeof window !== 'undefined' ? window : globalThis);

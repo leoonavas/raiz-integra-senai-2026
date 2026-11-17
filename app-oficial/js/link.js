@@ -9,7 +9,8 @@
      • broadcast — BroadcastChannel (abas/iframes da mesma origem). Usado no ambiente de teste local.
      • supabase  — Realtime Broadcast privado do Supabase (canal "farm:<id da fazenda>"), com login por link mágico.
                    Só membros da fazenda (tabela farm_members, RLS) enviam/recebem. Config em window.RAIZ_SUPABASE = { url, key }.
-   link.ready resolve quando o canal está pronto: { farm:{id,slug,name,city}, role, email } (no broadcast: {}). */
+   link.ready resolve quando o canal está pronto: { farm:{id,slug,name,city}, role, email } (no broadcast: {}).
+   link.invoke(fn, body) chama uma Edge Function (só supabase); link.sb é o cliente supabase-js. */
 (function () {
   'use strict';
   const V = 1;
@@ -94,8 +95,14 @@
       if (LOGGED.has(m.type)) sb.from('farm_events').insert({ farm_id: ctx.farmId, src: o.role, type: m.type, payload: m.payload }).then(r => { if (r.error) console.warn('[RaizLink] log', r.error.message); });
     }
     init().catch(e => { console.error('[RaizLink]', e); if (!gate) gate = gateUI(); if (e.message !== 'sem fazenda') say('Falha ao conectar: ' + e.message, true); badReady(e); });
+    /* chama uma Edge Function com o login do usuário; respostas de erro HTTP voltam como objeto (com _status) */
+    async function invoke(fn, body) {
+      await ready; const r = await sb.functions.invoke(fn, { body });
+      if (r.error) { let b = null; try { b = await r.error.context.json(); } catch (e) { } if (b) { b._status = r.error.context.status; return b; } throw r.error; }
+      return r.data;
+    }
     return {
-      name: 'supabase', ready, signOut: out,
+      name: 'supabase', ready, signOut: out, invoke, get sb() { return sb; },
       send(m) { if (up) push(m); else if (queue.length < 200) queue.push(m); },
       subscribe(f) { subs.add(f); return () => subs.delete(f); },
       close() { if (ch && sb) sb.removeChannel(ch); subs.clear(); }
@@ -117,6 +124,7 @@
       return {
         role: opts.role, get farmId() { return ctx.farmId; }, transport: raw.name || opts.transport, stats,
         ready: raw.ready || Promise.resolve({}), signOut: raw.signOut || (() => Promise.resolve()),
+        invoke: raw.invoke || (() => Promise.reject(new Error('Edge Functions só com o transporte supabase.'))), get sb() { return raw.sb || null; },
         send(type, payload, ts) {
           const m = { v: V, id: uid(), src: opts.role, farm: ctx.farmId, type, ts: ts || Date.now(), payload: payload == null ? null : payload };
           stats.sent++; raw.send(m); taps.forEach(f => f('out', m)); return m;
