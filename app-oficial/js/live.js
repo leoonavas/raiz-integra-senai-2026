@@ -22,7 +22,7 @@
   Object.assign(D.farm, { name: 'Fazenda', city: '' });
   Object.assign(D.user, { name: 'Operador de teste', initials: 'OT' });
   if (['gestor', 'operador'].includes(q.get('role'))) D.user.role = q.get('role');
-  L.devAuth = !(window.ReactNativeWebView || (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.raiz) || window.RaizAndroid);
+  L.devAuth = cfg.transport !== 'supabase' && !(window.ReactNativeWebView || (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.raiz) || window.RaizAndroid);
 
   let link = null;
   try { link = window.RaizLink.open({ farmId: cfg.farmId, role: 'app', transport: cfg.transport }); L.link = link; }
@@ -76,7 +76,7 @@
     Object.keys(sn.series || {}).forEach(id => { const p = plot(id); if (p) p.series = sn.series[id].slice(); });
     if (sn.forecast) { D.weather.rainProb = sn.forecast.rainProb; D.weather.hourly = sn.forecast.hourly; }
     D.net.gateway = 'online'; refreshSeen(); mark(true);
-    if (!L.connected) { L.connected = true; UI().receive({ type: 'gateway.found' }); if (q.has('auto')) UI().receive({ type: 'auth.ok' }); }
+    if (!L.connected) { L.connected = true; UI().receive({ type: 'gateway.found' }); if (q.has('auto') || link.transport === 'supabase') UI().receive({ type: 'auth.ok' }); /* com Supabase o login já foi feito (link mágico) */ }
   }
 
   function onMessage(m) {
@@ -114,6 +114,7 @@
   B.on((type, payload) => {
     if (L.devAuth && type === 'auth.pin') setTimeout(() => UI().receive({ type: payload && payload.pin === cfg.devPin ? 'auth.ok' : 'auth.fail' }), 200);
     else if (L.devAuth && type === 'auth.biometric') setTimeout(() => UI().receive({ type: 'auth.ok' }), 200);
+    else if (type === 'logout' && link && link.transport === 'supabase') link.signOut();
     else if (CMD.has(type)) sendCmd(type, payload);
   });
 
@@ -121,6 +122,11 @@
   window.addEventListener('load', () => {
     if (!link) return;
     link.on(onMessage);
+    link.ready.then(info => {                                                      // perfil e fazenda vêm do banco (Supabase)
+      if (info.role) D.user.role = info.role;
+      if (info.email) { D.user.name = info.email; D.user.initials = info.email.slice(0, 2).toUpperCase(); }
+      mark(true);
+    }).catch(() => { });
     const hello = () => link.send('hello.request', { app: 'raiz-app' });
     hello(); setInterval(() => { if (!L.connected) hello(); }, 2500);
     setInterval(() => link.send('app.ping', { app: 'raiz-app' }), 4000); link.send('app.ping', { app: 'raiz-app' });

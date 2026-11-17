@@ -34,7 +34,9 @@ function toApp(type, payload) {
   link.send(type, payload, Sim.tsOf(S.t));
   if (visual() && type !== 'telemetry' && type !== 'heartbeat') Scene.fly('gw', 'app', 'evt');
 }
+let farmInfo = null;
 const gw = Gw.create(S, toApp);
+const helloMsg = () => { const h = gw.hello(); if (farmInfo) h.farm = { id: farmInfo.id, name: farmInfo.name, city: farmInfo.city || '' }; return h; };
 S.hooks.telemetry = (d, v) => {
   if (visual()) { Scene.flash(d.id); Scene.fly(d.id, 'gw', 'tel', () => { if (visual() && S.net.gateway) Scene.fly('gw', 'app', 'tel'); }); }
   if (S.net.gateway) gw.ingest(d, v);
@@ -58,7 +60,7 @@ gw.muted = false; fast = false; logs.length = 0; S.t = Math.round(S.t); gw.forec
 if (link) {
   link.on(m => {
     if (m.type === 'app.ping') { appSeen = Date.now(); return; }
-    if (m.type === 'hello.request') { appSeen = Date.now(); toApp('hello', gw.hello()); return; }
+    if (m.type === 'hello.request') { appSeen = Date.now(); toApp('hello', helloMsg()); return; }
     if (m.type === 'command') {
       appSeen = Date.now();
       if (!S.net.gateway) { S.hooks.log('Comando ' + (m.payload && m.payload.cmd) + ' perdido: o gateway está fora do ar', 'bad'); return; }
@@ -67,7 +69,7 @@ if (link) {
     }
   });
   setInterval(() => { if (S.net.gateway) link.send('heartbeat', gw.heartbeat(), Sim.tsOf(S.t)); }, 2000);
-  setTimeout(() => toApp('hello', gw.hello()), 300);
+  link.ready.then(info => { farmInfo = info.farm || null; setTimeout(() => toApp('hello', helloMsg()), 300); }).catch(() => { });
 }
 
 /* ---------- laço principal ---------- */
@@ -215,7 +217,12 @@ $('#btnReload').onclick = loadApp; $('#autoLogin').onchange = loadApp;
 const setPhone = hide => { $('#layout').classList.toggle('nophone', hide); $('#btnPhone').textContent = hide ? 'Mostrar app' : 'Ocultar app'; $('#btnPhone').setAttribute('aria-pressed', String(!hide)); };
 $('#btnPhone').onclick = () => setPhone(!$('#layout').classList.contains('nophone'));
 setPhone(window.innerWidth < 1000);
-if (cfg.transport === 'broadcast') loadApp(); else { $('#hint').textContent = 'Transporte "' + cfg.transport + '": abra o app em outra aba.'; $('#btnOpen').href = appUrl(false); }
+if (cfg.transport === 'broadcast') loadApp();
+else {                                                       // hospedado: o app roda em outro endereço — abre em outra aba
+  setPhone(true); $('#btnPhone').hidden = true; $('#btnOpen').href = appUrl(false); $('#autoLogin').closest('.phone-tools').hidden = true;
+  $('#btnOut').hidden = false; $('#btnOut').onclick = () => link.signOut();
+  link.ready.then(info => { if (info.farm) $('#hint').textContent = info.farm.name + ' · ' + info.email + ' (' + info.role + '). Clique em um talhão para selecioná-lo; clique em um dispositivo na cena para simular uma falha nele.'; }).catch(() => { });
+}
 
 renderTabs(); renderPanel(); refresh(true);
 window.__farm = { S, gw, link, Sim, Scene, advance };

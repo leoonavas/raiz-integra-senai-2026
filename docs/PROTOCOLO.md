@@ -88,26 +88,29 @@ Todo comando recebe um `command.ack` com o mesmo `cid`. O app **não** altera o 
 
 ## Transportes
 
-`RaizLink.open({ farmId, role, transport })` (`js/link.js`, igual nas duas pastas):
+`RaizLink.open({ farmId, role, transport })` (`js/link.js`, igual nas duas pastas). `link.ready` resolve quando o canal está pronto.
 
 | Transporte | Uso |
 |---|---|
-| `broadcast` | **BroadcastChannel** (`raiz:<farmId>`) — abas/iframes da **mesma origem**. Ambiente de teste local: sirva a raiz do repositório e abra `/fazenda-digital/` e `/app-oficial/`. |
-| `supabase` | **Próxima etapa.** Registrar `RaizLink.transports.supabase = opts => ({ send(msg), subscribe(fn), close() })` sobre o Realtime. |
+| `broadcast` | **BroadcastChannel** (`raiz:<farmId>`) — abas/iframes da **mesma origem**, sem login. Ambiente local: sirva a raiz do repositório e abra `/fazenda-digital/` e `/app-oficial/`. É o padrão em `localhost`. |
+| `supabase` | **Realtime Broadcast privado** no canal `farm:<uuid da fazenda>`, evento `msg`, corpo = envelope. Login por **link mágico** (Supabase Auth); só membros da fazenda enviam/recebem (RLS em `realtime.messages`). É o padrão quando hospedado. |
 
-### Mapa sugerido para o Supabase
+### Supabase (projeto `raiz`)
 
-| Contrato | Supabase |
+| Tabela | Papel |
 |---|---|
-| Canal `raiz:<farm>` | Realtime **Broadcast** no canal `farm:<farmId>` (evento = `type`, corpo = envelope) |
-| `telemetry` | tabela `readings (farm_id, device_id, kind, plot_id, values jsonb, ts)` + `devices (…, status, batt, rssi, seen)` |
-| `alert.*` | tabela `alerts` (+ Postgres Changes para o app) |
-| `command` / `command.ack` | tabela `commands (cid, cmd, args jsonb, status, text, created_at)`; o gateway assina os inserts e atualiza o status |
-| `recommendation`, `run.log`, `series`, `forecast` | `recommendations`, `runs`, `moisture_hourly`, `forecasts` |
-| Autenticação (PIN no teste) | Supabase Auth + RLS por `farm_id`; **o gateway/servidor deve validar permissão do comando** (limiares só para `gestor`) |
+| `farms` | fazendas (`slug`, `name`, `city`) — ex.: `jacutinga` |
+| `farm_members` | quem pertence a qual fazenda e com qual perfil (`gestor` \| `operador`) |
+| `farm_invites` | convite por e-mail; ao entrar pela primeira vez, o gatilho `on_auth_user_created` cria o vínculo. Sem acesso pela API |
+| `farm_events` | registro de `alert.new`, `alert.update`, `command`, `command.ack`, `run.log` (telemetria **não** é gravada) |
 
-Lembretes para a etapa de hospedagem:
+- RLS em tudo: acesso sempre por pertencimento à fazenda (`is_farm_member`).
+- A chave `anon` em `js/config.js` é pública por desenho. **Nunca** colocar a `service_role` no front-end.
+- Convidar alguém: `insert into farm_invites (email, farm_id, role) …` (SQL Editor do Supabase).
+- No Supabase, em *Authentication → URL Configuration*, o **Site URL** e as **Redirect URLs** precisam conter os endereços hospedados (fazenda e app), senão o link mágico não volta para o site certo.
 
-- Em origens diferentes (`fazenda.…` e `app.…`) o `broadcast` não funciona — por isso o adaptador do Supabase.
+### Limites desta etapa
+
+- O gateway simulado ainda roda **no navegador** (aba da fazenda aberta). O próximo passo é movê-lo para uma Edge Function/worker.
+- O Realtime Broadcast não valida o conteúdo: qualquer membro pode enviar qualquer mensagem. A validação de perfil (ex.: só `gestor` altera limiares) ainda não é imposta pelo servidor — precisa passar por tabela `commands` + função/gatilho.
 - Comandos de bomba **não** podem depender só da interface: validar perfil, limites e energia no servidor/gateway (como já faz `gateway.js`).
-- Não publicar chaves com privilégio de serviço no front-end; usar a chave anônima + RLS.
