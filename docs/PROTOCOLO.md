@@ -92,6 +92,9 @@ Com **internet**, quem decide é a Edge Function `gateway` (Supabase); sem inter
 | `status` | membro | `{ gateway, internet, farmAgeSec, pending, lastSync, hasState }` — o app consulta a cada 6 s; é daqui que vem “gateway online” |
 | `sync` / `reset` | gestor | passagem de bastão local → nuvem / apagar o estado |
 
+**Uma fazenda por vez.** Cada aba da Fazenda Digital tem um `client` (uuid) e só a que detém a *posse* alimenta o gateway: `ingest`/`sync` de outro `client` recebem `409 outra_instancia` enquanto a dona renovar a posse (< 20 s). A aba recusada fica **em espera** e oferece “Assumir controle” (`claim`). Sem isso, duas simulações se misturavam (umidade alternando, bomba “ligada” que estava desligada).
+**Origem das mensagens.** O que vem da Edge Function leva `via:'edge'`. Com a nuvem ativa, o app **ignora** mensagens sem essa marca (outra fazenda/aba ainda mandando pelo canal); sem marca só entram quando a fazenda está sem internet (gateway local) ou a nuvem não responde. O gateway também descarta leituras mais antigas que a última do mesmo dispositivo.
+
 Tabelas: `gateway_state` (estado do gateway, só a função escreve) e `sim_state` (a simulação da Fazenda Digital continua de onde parou ao recarregar).
 
 ## Alertas — tudo que exige ação do usuário

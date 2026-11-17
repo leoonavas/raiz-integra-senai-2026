@@ -33,7 +33,7 @@
   let farmNow = 0, lastMsg = 0, structural = false, dirty = false, timers = false, lastRender = 0, down = false, cidSeq = 0;
   const pending = {};
   const SUPA = () => !!link && link.transport === 'supabase';
-  const edge = { ok: false, fails: 0, internet: true, farmAge: null };            // estado do gateway na nuvem (Edge Function)
+  const edge = { ok: false, tried: false, fails: 0, internet: true, farmAge: null };            // estado do gateway na nuvem (Edge Function)
   const call = async body => { await link.ready; return link.invoke('gateway', Object.assign({ farm_id: link.farmId }, body)); };
 
   const ago = ts => { if (!ts || !farmNow) return '—'; const m = Math.round((farmNow - ts) / 60000); return m < 1 ? 'agora' : m < 90 ? `há ${m} min` : `há ${Math.round(m / 60)} h`; };
@@ -84,6 +84,9 @@
 
   function onMessage(m) {
     if (!m || m.v !== 1 || m.src !== 'farm') return;
+    /* com a nuvem ativa, só vale o que vem da Edge Function (via:'edge'): outra fazenda/aba ainda mandando pelo canal não pode misturar dados.
+       Mensagens sem a marca só entram quando a fazenda está sem internet (gateway local) ou a nuvem não responde. */
+    if (SUPA() && m.via !== 'edge' && !(edge.tried && (!edge.ok || !edge.internet))) return;
     L.stats.in++; lastMsg = Date.now(); if (m.ts) farmNow = Math.max(farmNow, m.ts);
     const gwDown = m.type === 'heartbeat' && m.payload && m.payload.gateway === 'offline';              // a fazenda avisou que o gateway local caiu
     if (gwDown) { if (D.net.gateway !== 'offline') { D.net.gateway = 'offline'; mark(true); } }
@@ -161,7 +164,7 @@
   async function pollStatus() {
     if (!SUPA()) return;
     try {
-      const r = await call({ op: 'status' });
+      const r = await call({ op: 'status' }); edge.tried = true;
       if (!r || !r.gateway) throw new Error((r && r.error) || 'sem resposta');
       edge.ok = true; edge.fails = 0; edge.internet = r.internet !== false; edge.farmAge = r.farmAgeSec;
       if (r.ts) farmNow = Math.max(farmNow, r.ts);
@@ -173,7 +176,7 @@
       Object.assign(D.net, { internet: true, pending: r.pending, lastSync: ls });
       if (r.hasState) silentAlert(r.farmAgeSec);
     } catch (e) {
-      edge.fails++; console.warn('[Raiz live] status', e);
+      edge.tried = true; edge.ok = false; edge.fails++; console.warn('[Raiz live] status', e);
       if (edge.fails >= 3 && D.net.gateway === 'online') { D.net.gateway = 'offline'; mark(true); }          // o celular perdeu a conexão com a nuvem
     }
   }

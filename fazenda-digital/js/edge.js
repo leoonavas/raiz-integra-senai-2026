@@ -6,7 +6,7 @@
 const Sim = root.FarmSim;
 
 function create(o) {
-  const S = o.S, E = { queue: [], acks: [], flushing: false, again: false, needConfig: true, lastForecastAt: -1e9, n: 0, lastState: null, fails: 0, okAt: 0, lastError: '' };
+  const S = o.S, E = { lost: false, queue: [], acks: [], flushing: false, again: false, needConfig: true, lastForecastAt: -1e9, n: 0, lastState: null, fails: 0, okAt: 0, lastError: '' };
   const config = () => ({
     plots: S.plots.map(p => ({ id: p.id, name: p.name, crop: p.crop, area: p.area, flowRef: p.flowRef })),
     devices: S.devices.map(d => ({ id: d.id, name: d.name, type: d.type, plot: d.plot || null, fw: d.fw, link: d.link, rssi: d.rssi }))
@@ -32,6 +32,7 @@ function create(o) {
     try {
       const r = await o.call('ingest', body);
       if (r && r.ok) { E.runActs(r.actuate); E.needConfig = false; if (body.forecast) E.lastForecastAt = S.t; if (r.state) E.lastState = r.state; E.fails = 0; E.okAt = Date.now(); E.lastError = ''; }
+      else if (r && r.error === 'outra_instancia') { E.lost = true; if (o.onLost) o.onLost(r); }
       else if (r && r.error === 'sem_config') { E.needConfig = true; E.queue.unshift(...readings); E.acks.unshift(...acks); }
       else throw new Error((r && (r.error || r.text)) || 'resposta inválida');
     } catch (e) {

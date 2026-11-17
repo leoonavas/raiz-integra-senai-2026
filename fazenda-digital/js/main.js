@@ -33,8 +33,10 @@ try {
    • nuvem (Edge Function do Supabase) — manda quando há internet: a fazenda envia as leituras em lotes e recebe as ordens na resposta;
    • local (aqui no navegador, como o gateway instalado na fazenda) — assume sem internet ou se a nuvem falhar, e devolve o estado quando a internet volta. */
 const SUPA = !!link && link.transport === 'supabase';
-let mode = 'local', E = null, booted = false, farmInfo = null, retryAt = 0, readOnly = false, gwWasUp = true;
-const call = (op, body) => link.invoke('gateway', Object.assign({ op, farm_id: farmInfo.id }, body));
+let mode = 'local', E = null, booted = false, farmInfo = null, retryAt = 0, readOnly = false, gwWasUp = true, standby = false, saveTimer = null;
+/* cada aba tem um id: só UMA aba por vez alimenta o gateway na nuvem (senão duas simulações se misturariam) */
+const CLIENT = (window.crypto && crypto.randomUUID && crypto.randomUUID()) || Math.random().toString(36).slice(2) + Date.now().toString(36);
+const call = (op, body) => link.invoke('gateway', Object.assign({ op, farm_id: farmInfo.id, client: CLIENT }, body));
 
 function toApp(type, payload) {
   if (!S.net.gateway || !link || mode === 'edge') return;
@@ -55,6 +57,7 @@ async function toEdge() {
   mode = 'sync';
   try {
     const r = await call('sync', { state: gw.exportState(), t: S.t });
+    if (r && r.error === 'outra_instancia') { enterStandby('Outra aba da Fazenda Digital assumiu o controle.'); return; }
     if (!r || !r.ok) throw new Error((r && r.error) || 'sem resposta');
     gw.muted = true; E.needConfig = false; E.fails = 0; E.queue.length = 0; E.acks.length = 0; mode = 'edge';
     S.hooks.log('Gateway na nuvem (Edge Function) assumiu', 'sim');
@@ -67,7 +70,7 @@ function toLocal() {
   E.fails = 0; S.hooks.log(S.net.internet ? 'Nuvem indisponível — o gateway local assumiu' : 'Sem internet — o gateway local assumiu', 'sim');
 }
 function modeCheck() {
-  if (!SUPA || !E || !booted || readOnly) return;
+  if (!SUPA || !E || !booted || readOnly || standby) return;
   if (mode === 'edge' && (!S.net.internet || E.fails >= 3)) toLocal();
   else if (mode === 'local' && S.net.internet && Date.now() > retryAt) toEdge();
 }
@@ -91,7 +94,7 @@ function prerun() {
 }
 
 async function saveSim() {
-  if (!SUPA || !booted || readOnly || mode === 'sync') return;
+  if (!SUPA || !booted || readOnly || standby || mode === 'sync') return;
   try { await link.sb.from('sim_state').upsert({ farm_id: farmInfo.id, state: { sim: Sim.snapshot(S), gw: (mode === 'edge' && E.lastState) || gw.exportState() }, updated_at: new Date().toISOString() }); } catch (e) { console.warn('[sim_state]', e); }
 }
 async function resetAll() {
@@ -100,25 +103,34 @@ async function resetAll() {
   location.reload();
 }
 
-async function bootSupa() {
+function enterStandby(why) {
+  standby = true; S.running = false; mode = 'standby'; if (gw) gw.muted = true; booted = true;
+  $('#hint').textContent = why + ' Esta aba ficou em espera para não misturar duas simulações. Clique em “Assumir controle” para controlar a fazenda por aqui.';
+  $('#btnClaim').hidden = false; refresh(true);
+}
+async function bootSupa(takeover) {
   let info;
   try { info = await link.ready; } catch (e) { $('#hint').textContent = 'Sem conexão com a nuvem: ' + e.message; return; }
   farmInfo = info.farm;
   if (info.role !== 'gestor') { readOnly = true; S.running = false; booted = true; $('#hint').textContent = 'Somente o gestor opera a Fazenda Digital. Abra o app para acompanhar.'; return; }
+  if (!E) E = FarmEdge.create({ S, call, onLost: () => enterStandby('Outra aba da Fazenda Digital assumiu o controle.') });
+  if (!takeover) {
+    try { const st = await call('status'); if (st && st.ownerActive && !st.ownerMine) { enterStandby('Já existe outra aba da Fazenda Digital controlando esta fazenda.'); return; } } catch (e) { console.warn(e); }
+  } else { try { await call('claim'); } catch (e) { console.warn(e); } }
   let restored = false;
   try {
     const { data } = await link.sb.from('sim_state').select('state').eq('farm_id', farmInfo.id).maybeSingle();
     if (data && data.state && Sim.restore(S, data.state.sim)) { if (data.state.gw) gw.importState(data.state.gw); restored = true; gwWasUp = S.net.gateway; S.hooks.log('Simulação retomada de onde parou', 'sim'); }
   } catch (e) { console.warn(e); }
   if (!restored) prerun();
-  E = FarmEdge.create({ S, call });
+  E.lost = false; E.fails = 0;
   try {
     const st = await call('status');
-    if (!restored || !st.hasState) { const r = await call('sync', { state: gw.exportState(), t: S.t }); if (!r || !r.ok) throw new Error((r && r.error) || 'sync'); }
+    if (!restored || !st.hasState) { const r = await call('sync', { state: gw.exportState(), t: S.t, takeover: !!takeover }); if (!r || !r.ok) throw new Error((r && r.error) || 'sync'); }
     E.needConfig = false;
     if (S.net.internet) { gw.muted = true; mode = 'edge'; S.hooks.log('Gateway na nuvem (Edge Function) ativo', 'sim'); }
   } catch (e) { mode = 'local'; retryAt = Date.now() + 15000; S.hooks.log('Edge Function indisponível — gateway local ativo (' + e.message + ')', 'bad'); }
-  booted = true; setInterval(saveSim, 15000);
+  booted = true; standby = false; $('#btnClaim').hidden = true; if (!saveTimer) saveTimer = setInterval(saveSim, 15000);
 }
 
 if (link) {
@@ -145,9 +157,9 @@ function advance(n) { for (let i = 0; i < n; i++) stepAll(); }
 function onTick() {
   tickN++;
   const now = performance.now(), dt = Math.min(5, (now - lastTick) / 1000); lastTick = now;
-  if (booted && !readOnly && S.running && S.speed > 0) { S.acc += S.speed * dt; const n = Math.min(Math.floor(S.acc), 120); S.acc -= Math.floor(S.acc); advance(n); }
+  if (booted && !readOnly && !standby && S.running && S.speed > 0) { S.acc += S.speed * dt; const n = Math.min(Math.floor(S.acc), 120); S.acc -= Math.floor(S.acc); advance(n); }
   refresh(false);
-  if (booted && mode === 'edge' && S.net.gateway && tickN % 3 === 0) E.flush();                                   // a cada ~1,5 s
+  if (booted && !standby && mode === 'edge' && S.net.gateway && tickN % 3 === 0) E.flush();                                   // a cada ~1,5 s
   if (booted && link && mode !== 'edge' && S.net.gateway && tickN % 4 === 0) link.send('heartbeat', gw.heartbeat(), Sim.tsOf(S.t));
 }
 try {
@@ -236,7 +248,7 @@ function refresh(now) {
   $('#clkTime').textContent = Sim.hhmm(S.t); $('#clkDate').textContent = Sim.dateLabel(S.t);
   $('#clkWx').textContent = `${Sim.KINDS[S.wx.kind].label} · ${fmt(S.wx.temp, 0)} °C`;
   const set = (id, cls, txt) => { const e = $(id); e.className = 'pill ' + cls; if (txt) e.lastChild.textContent = txt; };
-  set('#hGw', S.net.gateway ? (mode === 'local' && SUPA ? 'warn' : 'ok') : 'bad', !S.net.gateway ? 'Gateway fora do ar' : !SUPA ? 'Gateway online' : mode === 'edge' ? 'Gateway: nuvem (Edge)' : mode === 'sync' ? 'Gateway: trocando…' : 'Gateway: local');
+  if (standby) set('#hGw', 'warn', 'Em espera (outra aba controla)'); else set('#hGw', S.net.gateway ? (mode === 'local' && SUPA ? 'warn' : 'ok') : 'bad', !S.net.gateway ? 'Gateway fora do ar' : !SUPA ? 'Gateway online' : mode === 'edge' ? 'Gateway: nuvem (Edge)' : mode === 'sync' ? 'Gateway: trocando…' : 'Gateway: local');
   set('#hNet', S.net.internet ? 'ok' : 'warn', S.net.internet ? 'Internet' : 'Sem internet');
   const appOn = Date.now() - appSeen < 9000; set('#hApp', appOn ? 'ok' : 'warn', appOn ? 'App conectado' : 'App aguardando');
   Scene.update(S); renderSpeed();
@@ -263,6 +275,7 @@ document.addEventListener('click', e => {
     case 'clear': Sim.faults.clearAll(S); sched.length = 0; refresh(true); break;
     case 'scn': SCN[+v][2](); refresh(true); break;
     case 'reset': resetAll(); break;
+    case 'claim': standby = false; S.running = true; $('#btnClaim').hidden = true; bootSupa(true); break;
     case 'pumpnow': startPump(selPlot, 30); refresh(true); break;
     case 'logpause': logPaused = !logPaused; renderPanel(); break;
     case 'logclear': logs.length = 0; renderPanel(); break;

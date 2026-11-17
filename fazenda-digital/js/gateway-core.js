@@ -119,8 +119,10 @@ function create(env) {
 
   /* ---------- telemetria: reading = { device, kind, plot, values, batt, rssi, name, t } ---------- */
   function ingest(r) {
+    const id = r.device;
+    if (r.t != null && gw.lastSeen[id] != null && r.t < gw.lastSeen[id]) return;        // leitura atrasada/de outro relógio: nunca sobrescreve a mais nova
     if (r.t != null) gw.now = Math.max(gw.now, r.t);
-    const v = r.values || {}, id = r.device;
+    const v = r.values || {};
     gw.lastSeen[id] = gw.now; gw.last[id] = v; if (r.batt != null) gw.batt[id] = r.batt;
     if (!env.internet()) gw.pending++;
     if (gw.devStatus[id] !== 'online') { gw.devStatus[id] = 'online'; send('device.status', { device: id, status: 'online', seen: ts() }); resolve('off:' + id, 'Comunicação restabelecida.'); }
