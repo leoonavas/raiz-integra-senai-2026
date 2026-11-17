@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Raiz — Dossiê INTEGRA SENAI 2026 — Equipe Atlas</title>
+<style>
+:root{--blue:#17409a;--navy:#0f2c6b;--orange:#e8501a;--soft:#eef3fb;--softo:#fff1ea;--line:#cdd7ea;--ink:#1d2433;--mut:#5a6578;--ph:#fff3a8}
+@page{size:A4;margin:18mm 16mm 20mm 16mm;
+  @bottom-center{content:"INTEGRA SENAI 2026  ·  Projeto Raiz  ·  Equipe Atlas  —  página " counter(page);font:8pt Helvetica,Arial,sans-serif;color:#7a8499}}
+@page :first{margin:0;@bottom-center{content:none}}
+*{box-sizing:border-box}
+body{font:10pt/1.45 Helvetica,Arial,sans-serif;color:var(--ink);margin:0}
+h1{font-size:17pt;color:var(--navy);margin:0 0 4pt;page-break-after:avoid}
+h1 .n{display:inline-block;background:var(--orange);color:#fff;border-radius:4pt;padding:1pt 7pt;margin-right:7pt;font-size:13pt}
+h2{font-size:11.5pt;color:var(--orange);margin:13pt 0 4pt;page-break-after:avoid}
+h3{font-size:10pt;color:var(--blue);margin:9pt 0 3pt;page-break-after:avoid}
+p{margin:0 0 6pt;text-align:justify}
+ul,ol{margin:0 0 6pt 15pt;padding:0}li{margin-bottom:2pt}
+.sec{page-break-before:always}
+.bar{height:3pt;background:linear-gradient(90deg,var(--orange) 0 22%,var(--blue) 22% 100%);margin:0 0 10pt;border-radius:2pt}
+.meta{font-size:8.5pt;color:var(--mut);margin-bottom:8pt}
+table{border-collapse:collapse;width:100%;margin:4pt 0 9pt;page-break-inside:auto;font-size:9pt}
+tr{page-break-inside:avoid}
+th{background:var(--blue);color:#fff;text-align:left;padding:4pt 6pt;font-weight:700;border:1px solid var(--blue)}
+td{padding:4pt 6pt;border:1px solid var(--line);vertical-align:top}
+tr:nth-child(even) td{background:#f8faff}
+table.kv td:first-child{width:30%;font-weight:700;color:var(--navy);background:var(--soft)}
+.ph{background:var(--ph);padding:0 2pt;border-radius:2pt;font-weight:600}
+.box{border-left:4pt solid var(--blue);background:var(--soft);padding:6pt 9pt;margin:6pt 0 9pt;font-size:9.2pt;page-break-inside:avoid}
+.box.o{border-color:var(--orange);background:var(--softo)}
+.box b.t{display:block;color:var(--orange);font-size:8pt;letter-spacing:.5pt;text-transform:uppercase;margin-bottom:1pt}
+.box.b b.t{color:var(--blue)}
+.cols{display:flex;gap:10pt}.cols>div{flex:1}
+.flow{display:flex;align-items:stretch;gap:0;margin:6pt 0 4pt}
+.flow div{flex:1;border:1px solid var(--line);background:#fff;padding:5pt 6pt;font-size:8.6pt;text-align:center;position:relative;margin-right:9pt;border-radius:3pt}
+.flow div:not(:last-child):after{content:"▶";position:absolute;right:-10pt;top:50%;transform:translateY(-50%);color:var(--orange);font-size:8pt}
+.flow.bad div{background:#fff6f2}.flow.good div{background:#f1f7ff}
+.lbl{font-size:8pt;font-weight:700;letter-spacing:.4pt;text-transform:uppercase;margin-top:5pt}
+.sig{display:flex;gap:10pt;margin-top:14pt}.sig div{flex:1;text-align:center;font-size:8.5pt;padding-top:22pt;border-top:1px solid #444}
+.canvas{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid var(--blue);font-size:8pt}
+.canvas>div{border:1px solid #9db4e3;padding:4pt 5pt;min-height:78pt;background:#fff}
+.canvas>div.y{background:#fffbf2}
+.canvas b{display:block;color:var(--blue);font-size:8pt;margin-bottom:1pt}
+.canvas small{display:block;color:#7a8499;font-size:6.8pt;margin-bottom:2pt}
+.canvas .w2{grid-column:span 2}.canvas .w3{grid-column:span 3}
+.canvas .h{background:var(--blue);color:#fff;min-height:0;font-weight:700}
+.canvas .h b{color:#fff}
+.chk li{list-style:none;margin-left:-12pt}
+.small{font-size:8.5pt;color:var(--mut)}
+/* capa */
+.cover{height:297mm;position:relative;background:#fff;page-break-after:always}
+.cover .top{background:linear-gradient(135deg,var(--navy) 0 55%,var(--orange) 55% 100%);height:78mm;color:#fff;padding:22mm 18mm 0}
+.cover .top .t1{font-size:11pt;letter-spacing:2pt;font-weight:700}
+.cover .top .t2{font-size:9pt;opacity:.9;margin-top:3pt}
+.cover .body{padding:18mm 18mm 0}
+.cover h1{font-size:34pt;color:var(--navy);margin:0}
+.cover .sub{font-size:13pt;color:var(--blue);margin:4pt 0 14pt}
+.cover .tag{display:inline-block;background:var(--orange);color:#fff;font-weight:700;font-size:9pt;padding:3pt 9pt;border-radius:10pt;margin-bottom:12pt}
+.cover table{font-size:10pt}
+.cover .foot{position:absolute;left:18mm;right:18mm;bottom:14mm;font-size:8.5pt;color:var(--mut);border-top:2px solid var(--orange);padding-top:6pt}
+</style>
+</head>
+<body>
+
+<!-- ===== CAPA ===== -->
+<div class="cover">
+  <div class="top"><div class="t1">SAGA SENAI DE INOVAÇÃO</div><div class="t2">INTEGRA SENAI 2026 &nbsp;|&nbsp; Entregas obrigatórias (Cap. 7 do Regulamento v3.0)</div></div>
+  <div class="body">
+    <span class="tag">INTEGRA Inovação Aberta</span>
+    <h1>Raiz</h1>
+    <div class="sub">Sistema modular para decidir quando irrigar e detectar anomalias de vazão,<br>com operação local mesmo sem internet</div>
+    <table class="kv">
+      <tr><td>Equipe</td><td>Atlas</td></tr>
+      <tr><td>Líder da equipe</td><td>Leonardo Navas</td></tr>
+      <tr><td>Integrantes (3 a 5 estudantes)</td><td>Leonardo Navas; <span class="ph">[preencher: demais integrantes]</span></td></tr>
+      <tr><td>Docente orientador / coorientador</td><td><span class="ph">[preencher]</span> / <span class="ph">[preencher, se houver]</span></td></tr>
+      <tr><td>Unidade SENAI · Departamento Regional</td><td><span class="ph">[preencher]</span> · SENAI-SP · Jaú</td></tr>
+      <tr><td>Curso / turma · Modalidade formativa</td><td><span class="ph">[preencher]</span> · <span class="ph">[Aprendizagem Industrial / Curso Técnico / Educação Superior]</span></td></tr>
+      <tr><td>Nível de maturidade declarado</td><td>TRL 2→3 hoje; meta TRL 4 (bancada de laboratório) até 11/12/2026</td></tr>
+      <tr><td>Versão</td><td>Rascunho de trabalho para validação da equipe e do orientador — 17/11/2026</td></tr>
+    </table>
+    <div class="box o"><b class="t">Como ler este documento</b>
+      Campos em <span class="ph">amarelo [preencher]</span> são informações que só a equipe, o orientador ou a unidade possuem. Nada neste dossiê foi inventado como resultado: onde não há dado de campo, o texto diz isso. Os números de teste do MVP são <b>metas</b>, não resultados.</div>
+  </div>
+  <div class="foot">Documento organizado conforme o Caderno Nacional de Templates (Anexo 1) e o Guia de Tecnologias (Anexo 3). Em caso de divergência, prevalecem o Regulamento e comunicados oficiais.</div>
+</div>
+
+<!-- ===== SUMÁRIO / RESUMO ===== -->
+<h1>Resumo do projeto</h1><div class="bar"></div>
+<p><b>Problema.</b> Em propriedades de cana-de-açúcar com captação própria, a irrigação costuma ser acionada por calendário ou observação visual e a vazão da bomba raramente é medida de forma contínua. Vazamentos, entupimentos e funcionamento a seco passam despercebidos, e a falta de internet limita soluções que dependem só de painel remoto.</p>
+<p><b>Solução.</b> O <b>Raiz</b> combina sensor de umidade do solo, dado climático e medição de vazão em um controlador que recomenda <i>quando</i> irrigar, compara a vazão esperada com a observada e alerta anomalias. Lê, registra e alerta <b>localmente sem internet</b> e sincroniza quando o sinal volta. O operador sempre decide: aceita, ajusta ou recusa a recomendação.</p>
+<p><b>Nesta etapa.</b> MVP de <b>bancada de laboratório</b> (reservatório, mini-bomba 12 V, sensor de umidade, medidor de vazão, controlador, painel), com falhas simuladas. Ainda <b>não há resultados de campo</b>. A água só é monitorada como triagem (módulo futuro) e nunca como atestado de potabilidade.</p>
+
+<table class="kv">
+<tr><td>Categoria</td><td>INTEGRA Inovação Aberta (Art. 48). Possível enquadramento em Soluções Industriais somente com demanda formal de organização externa ao SENAI (Art. 48, parágrafo único, e Art. 53).</td></tr>
+<tr><td>ODS</td><td>2 (Agricultura Sustentável) · 6 (Água e Saneamento) · 12 (Consumo e Produção Responsáveis) · 13 (Ação Climática)</td></tr>
+<tr><td>Tecnologias (Guia, itens 4 e 6)</td><td>Sensores, IoT e sistemas embarcados; painel digital; regra de decisão operacional (sem IA no MVP)</td></tr>
+</table>
+
+<h3>Índice das 8 entregas obrigatórias</h3>
+<table>
+<tr><th style="width:8%">Nº</th><th>Entrega (Art. 59–69)</th><th style="width:22%">Template</th></tr>
+<tr><td>1</td><td>Plano de Ensino da UC e planos de aula (rascunho para o docente)</td><td>Template 1</td></tr>
+<tr><td>2</td><td>Diagnóstico do problema ou oportunidade</td><td>Template 2</td></tr>
+<tr><td>3</td><td>Pesquisa com usuários, stakeholders e contexto (instrumento pronto + registro)</td><td>Template 3</td></tr>
+<tr><td>4</td><td>Pesquisa de anterioridade, benchmarking e referências</td><td>Template 4</td></tr>
+<tr><td>5</td><td>Proposta de valor e modelagem (Lean Canvas em português)</td><td>Template 5</td></tr>
+<tr><td>6</td><td>Planejamento do projeto e desenvolvimento do MVP</td><td>Template 6</td></tr>
+<tr><td>7</td><td>Registro do uso de IA e validação humana</td><td>Template 7</td></tr>
+<tr><td>8</td><td>MVP, pitch e portfólio essencial de evidências</td><td>Template 8</td></tr>
+<tr><td>A</td><td>Anexo: premissas econômicas do plano de negócios (opcional)</td><td>—</td></tr>
+</table>
+<p class="small">Calendário nacional de referência (Art. 41): submissão pelos Departamentos Regionais até 19/11/2026 · banca regional 23/11 a 11/12 · atualização dos classificados 14 a 16/12 · avaliação nacional a partir de 17/12/2026 · resultado em 25/02/2027. O prazo interno da unidade/DR pode ser anterior.</p>
+
+<!-- ===== ENTREGA 1 ===== -->
+<div class="sec"></div>
+<h1><span class="n">1</span>Plano de Ensino da UC e planos de aula</h1><div class="bar"></div>
+<div class="box"><b class="t">Responsável: docente orientador / equipe pedagógica</b>Este plano é uma <b>proposta de rascunho</b> da Situação de Aprendizagem. Capacidades, carga horária e número de aulas devem ser conformados ao Plano de Curso real, e o documento só vale após as assinaturas (Art. 62).</div>
+<h2>1. Identificação da Unidade Curricular</h2>
+<table class="kv">
+<tr><td>Curso</td><td><span class="ph">[conforme Plano de Curso]</span></td></tr>
+<tr><td>Unidade Curricular</td><td><span class="ph">[nome da UC; se mobilizar mais de uma UC, indicar o planejamento integrado — Art. 60]</span></td></tr>
+<tr><td>Carga horária da UCR · nº de aulas</td><td><span class="ph">[preencher]</span> · <span class="ph">[preencher]</span></td></tr>
+<tr><td>Nº de Situações de Aprendizagem</td><td><span class="ph">[preencher]</span></td></tr>
+<tr><td>Objetivo da UCR</td><td><span class="ph">[descrever o objetivo formativo]</span></td></tr>
+<tr><td>Capacidades básicas</td><td><span class="ph">[listar]</span></td></tr>
+<tr><td>Capacidades técnicas</td><td><span class="ph">[listar as do curso]</span> — sugestão de aderência ao projeto: instrumentação e sensores; programação de microcontroladores; aquisição e registro de dados; acionamento de cargas com segurança; comunicação de dados.</td></tr>
+<tr><td>Capacidades socioemocionais</td><td><span class="ph">[listar]</span> — sugestão: colaboração, comunicação, pensamento crítico, autonomia, ética no uso de dados e de IA (Art. 4).</td></tr>
+</table>
+<h2>2. Situação de Aprendizagem</h2>
+<table class="kv">
+<tr><td>Situação de Aprendizagem nº</td><td><span class="ph">[preencher]</span></td></tr>
+<tr><td>Estratégia de Aprendizagem Desafiadora</td><td>☒ Projeto &nbsp; ☒ Pesquisa aplicada &nbsp; ☐ Situação-problema &nbsp; ☐ Estudo de caso</td></tr>
+<tr><td>Contextualização</td><td>A irrigação responde por cerca de 50,3% das retiradas consuntivas de água no Brasil (ANA, 2026). Jaú tem relevância na cana-de-açúcar (IBGE, 2025). Em propriedades com captação própria, decidir o momento da irrigação e perceber falhas de vazão a tempo é um problema real de gestão da água e da energia.</td></tr>
+<tr><td>Desafio</td><td>Projetar, construir e testar em bancada um sistema de leitura, registro e alerta que recomende quando irrigar e sinalize anomalias de vazão, funcionando com e sem internet, com segurança elétrica e validação com usuários reais.</td></tr>
+<tr><td>Resultados esperados</td><td>As 8 entregas do INTEGRA; MVP de bancada demonstrável (vídeo e registros de teste); pesquisa com usuários documentada; registro de IA com validação humana; pitch.</td></tr>
+<tr><td>Relação com o INTEGRA SENAI</td><td>A situação de aprendizagem <b>é</b> o projeto inscrito: cada atividade abaixo gera uma entrega obrigatória, evitando atividade paralela ao currículo.</td></tr>
+</table>
+<h2>3. Plano de Aula (proposta de sequência)</h2>
+<table>
+<tr><th style="width:9%">Aulas</th><th style="width:21%">Capacidades</th><th style="width:20%">Conhecimentos</th><th>Estratégia / atividade</th><th style="width:17%">Recursos e ambientes</th><th style="width:19%">Critérios · instrumentos</th></tr>
+<tr><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td>Problema, contexto, usuário</td><td>Diagnóstico e mapa do processo de irrigação; definição do recorte.</td><td>Sala; fontes públicas (ANA, IBGE)</td><td>Problema delimitado com evidências · Template 2</td></tr>
+<tr><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td>Pesquisa com usuários; LGPD</td><td>Roteiro, entrevistas com produtores/técnicos, síntese de insights.</td><td>Roteiro; termo de ciência</td><td>Qualidade das evidências · Template 3</td></tr>
+<tr><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td>Anterioridade; INPI</td><td>Busca e matriz comparativa de soluções existentes.</td><td>Laboratório de informática</td><td>Lacunas e diferencial · Template 4</td></tr>
+<tr><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td>Sensores, microcontrolador, lógica de decisão</td><td>Montagem e calibração da bancada; regra de recomendação e de anomalia.</td><td>SENAI Lab / lab. de eletrônica</td><td>Função central demonstrada · checklist de bancada</td></tr>
+<tr><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td>Teste, medição, análise</td><td>Testes offline, conectado e falhas simuladas; análise de dados.</td><td>Bancada; planilha de registro</td><td>Protocolo cumprido · Template 6/8</td></tr>
+<tr><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td>Comunicação e modelagem</td><td>Lean Canvas, pitch, portfólio, registro de IA.</td><td>Sala; software de apresentação</td><td>Clareza e autoria · Templates 5, 7, 8</td></tr>
+</table>
+<div class="box b"><b class="t">Checklist do Plano de Ensino</b>☐ Curso, UC, carga horária e SAs identificados ☐ Objetivo da UCR ☐ Capacidades vinculadas ao desafio ☐ Estratégia marcada ☐ Contextualização, desafio e resultados ☐ Plano de aula com critérios e instrumentos ☐ Assinaturas</div>
+<h3>Validação pedagógica (Art. 62)</h3>
+<div class="sig"><div>Docente responsável<br>Data: ___/___/_____</div><div>Coorientador, quando houver<br>Data: ___/___/_____</div><div>Coordenação pedagógica/técnica<br>Data: ___/___/_____</div></div>
+
+<!-- ===== ENTREGA 2 ===== -->
+<div class="sec"></div>
+<h1><span class="n">2</span>Diagnóstico do problema ou oportunidade</h1><div class="bar"></div>
+<table class="kv">
+<tr><td>Nome do projeto · equipe</td><td>Raiz · Atlas</td></tr>
+<tr><td>Unidade · curso/turma · orientador</td><td><span class="ph">[preencher]</span> · <span class="ph">[preencher]</span> · <span class="ph">[preencher]</span></td></tr>
+<tr><td>Problema identificado</td><td>Decisões de irrigação tomadas por calendário ou observação visual e ausência de medição contínua da vazão fazem com que desperdício de água e energia e falhas de bombeamento sejam percebidos tarde, sobretudo em áreas com conectividade instável.</td></tr>
+<tr><td>Contexto de ocorrência</td><td>Propriedades de cana-de-açúcar de Jaú (SP) e região, com irrigação pressurizada, captação própria (poço tubular) e bomba elétrica; recorte inicial de um talhão de cerca de 10 hectares.</td></tr>
+<tr><td>Público afetado</td><td>Produtor/gestor da propriedade; operador de irrigação; técnico agrícola/agrônomo. Influenciadores: cooperativas, empresas de irrigação, laboratórios de água.</td></tr>
+<tr><td>Causas prováveis</td><td>Irrigação sem leitura contínua de solo e clima · ausência de medidor de vazão ou de registro histórico · inspeção apenas periódica da linha · anotações manuais · sinal de internet fraco para soluções só em nuvem. <i>(A confirmar nas entrevistas — Entrega 3.)</i></td></tr>
+<tr><td>Impactos observados</td><td>Contexto nacional: a irrigação respondeu por cerca de 50,3% das retiradas consuntivas em 2024, ≈ 1.056,3 m³/s (ANA, 2026). Impactos prováveis na propriedade: água/energia aplicadas fora do momento ideal, bomba funcionando a seco, paradas inesperadas. <b>Não há ainda medição própria da equipe</b> desses impactos.</td></tr>
+<tr><td>Evidências utilizadas</td><td>Documentais: ANA (2026); IBGE (2025); SP Águas (2026). Campo: <span class="ph">[entrevistas/observações da Entrega 3 — n = ___]</span>. Fotos autorizadas: <span class="ph">[anexar, se houver]</span>.</td></tr>
+<tr><td>Oportunidade de inovação</td><td>Reunir, em módulos acessíveis, funções que costumam aparecer separadas — decisão de irrigação, vazão e (futuramente) indicadores da água — com operação local sem internet e aproveitamento da infraestrutura existente.</td></tr>
+</table>
+<h3>Mapa do processo — onde a dor aparece</h3>
+<div class="lbl" style="color:#b23a10">Hoje</div>
+<div class="flow bad"><div>Calendário ou observação visual</div><div>Irrigação acionada manualmente</div><div>Sem medição contínua de vazão</div><div><b>Anomalia descoberta tarde</b> (perda, paralisação)</div></div>
+<div class="lbl" style="color:var(--blue)">Com o Raiz</div>
+<div class="flow good"><div>Umidade do solo + clima</div><div>Recomendação ao operador (aceita / ajusta / recusa)</div><div>Vazão medida × esperada</div><div><b>Alerta local + registro</b> (funciona offline)</div><div>Sincronização quando houver sinal</div></div>
+<div class="box"><b class="t">Limite do dado</b>O valor da produção de cana em Jaú confirma a presença da cultura; não mede quantas propriedades irrigam nem a disposição de pagar. Esses pontos são investigados na Entrega 3.</div>
+
+<!-- ===== ENTREGA 3 ===== -->
+<div class="sec"></div>
+<h1><span class="n">3</span>Pesquisa com usuários, stakeholders e contexto</h1><div class="bar"></div>
+<div class="box o"><b class="t">Entrega obrigatória (Art. 64) · critério C2 = 15% da nota</b>No relatório de origem do projeto a pesquisa foi só documental (0 participantes). Aqui ficam o instrumento pronto e o registro. <b>Os campos de respostas só podem ser preenchidos com conversas reais.</b> Fabricar respostas é fraude (Art. 72, 79 e 111).</div>
+<table class="kv">
+<tr><td>Objetivo da pesquisa</td><td>Descobrir como a irrigação é decidida hoje, se a vazão é medida, como falhas são percebidas, qual a qualidade do sinal de internet e o que o operador precisaria para confiar em uma recomendação automática.</td></tr>
+<tr><td>Público pesquisado</td><td>Meta mínima sugerida: 3 a 5 produtores/gestores de cana · 1 a 2 técnicos/agrônomos · 1 operador de irrigação · 1 representante de empresa de irrigação, cooperativa ou usina (também candidato a Embaixador de Negócios, Art. 16).</td></tr>
+<tr><td>Método</td><td>☒ Entrevista semiestruturada &nbsp; ☐ Questionário &nbsp; ☒ Observação (se autorizada) &nbsp; ☐ Grupo focal</td></tr>
+<tr><td>Quantidade de participantes</td><td><span class="ph">[n = ___]</span> (nesta data: 0)</td></tr>
+<tr><td>Cuidados éticos (LGPD, Art. 81 e 107)</td><td>Apresentar a finalidade, pedir consentimento (registro de ciência), anonimizar nomes e propriedades nos anexos, não gravar áudio/imagem sem autorização.</td></tr>
+</table>
+<h3>Roteiro de perguntas</h3>
+<ol>
+<li>Como você decide quando irrigar? Quem decide e com base em quê (calendário, olhar o solo, previsão do tempo, aplicativo)?</li>
+<li>Você mede a umidade do solo? Como e com que frequência?</li>
+<li>Você mede ou registra a vazão/volume bombeado? Como?</li>
+<li>Nos últimos 12 meses, houve vazamento, entupimento, bomba a seco ou queda de pressão? Como e quanto tempo depois foi percebido? Qual foi o custo?</li>
+<li>Como é o sinal de internet/celular na área do poço e do talhão?</li>
+<li>Já usou algum sistema, sensor ou aplicativo de irrigação? O que funcionou e o que não funcionou?</li>
+<li>Você confiaria em uma recomendação do sistema? O que precisaria ver para confiar? Prefere decidir sozinho ou aceitar/ajustar a sugestão?</li>
+<li>Como o trabalho do operador mudaria com um painel de alertas? Que habilidades seriam úteis? (requalificação)</li>
+<li>Que riscos o preocupariam (segurança elétrica, bomba acionada sozinha, dados)?</li>
+<li>Quanto de investimento e de mensalidade faria sentido? <i>(resposta de percepção, não de compromisso de compra)</i></li>
+</ol>
+<h3>Hipóteses a confirmar, ajustar ou rejeitar</h3>
+<table>
+<tr><th style="width:6%">H</th><th>Hipótese (origem: relatório de origem do projeto)</th><th style="width:16%">Perguntas</th><th style="width:30%">Resultado (preencher após a coleta)</th></tr>
+<tr><td>H1</td><td>Umidade do solo + clima melhoram a decisão em relação ao calendário fixo.</td><td>1, 2</td><td><span class="ph">[ ]</span></td></tr>
+<tr><td>H2</td><td>Comparar vazão esperada × observada indica anomalias antes de uma inspeção tardia.</td><td>3, 4</td><td><span class="ph">[ ]</span></td></tr>
+<tr><td>H3</td><td>Operação local com armazenamento mantém a utilidade onde a conexão é instável.</td><td>5, 6</td><td><span class="ph">[ ]</span></td></tr>
+<tr><td>H4</td><td>Indicadores simples da água (pH, condutividade, turbidez) ajudam a perceber alterações — <i>módulo futuro, só triagem</i>.</td><td>4, 9</td><td><span class="ph">[ ]</span></td></tr>
+</table>
+<h3>Registro das entrevistas</h3>
+<table>
+<tr><th style="width:6%">Nº</th><th style="width:20%">Perfil (anonimizado)</th><th style="width:12%">Data</th><th style="width:12%">Método</th><th>Principais respostas / evidências</th><th style="width:20%">Insight</th></tr>
+<tr><td>1</td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td></tr>
+<tr><td>2</td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td></tr>
+<tr><td>3</td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td></tr>
+<tr><td>4</td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td></tr>
+<tr><td>5</td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td></tr>
+</table>
+<table class="kv">
+<tr><td>Síntese dos insights</td><td><span class="ph">[separar o que foi dito da interpretação da equipe]</span></td></tr>
+<tr><td>Implicações para a solução</td><td><span class="ph">[o que muda no MVP, no recorte ou na proposta de valor]</span></td></tr>
+<tr><td>Anexos e evidências</td><td><span class="ph">[links, planilha, formulário, fotos autorizadas]</span></td></tr>
+</table>
+
+<!-- ===== ENTREGA 4 ===== -->
+<div class="sec"></div>
+<h1><span class="n">4</span>Anterioridade, benchmarking e referências</h1><div class="bar"></div>
+<div class="box o"><b class="t">Atenção à veracidade</b>A matriz abaixo parte de <b>categorias de solução</b> e de hipóteses sobre o que costumam oferecer. Cada célula deve ser confirmada em fonte (site do fabricante, manual, artigo, patente) e citada em ABNT antes da submissão (Art. 78). Nomes de produtos são pontos de partida de pesquisa, não afirmações validadas.</div>
+<table class="kv">
+<tr><td>Tema pesquisado</td><td>Monitoramento e automação de irrigação com medição de vazão e operação sem internet para propriedades agrícolas de pequeno e médio porte.</td></tr>
+<tr><td>Palavras-chave</td><td>irrigação inteligente; sensor de umidade do solo; detecção de vazamento em irrigação; monitoramento de vazão de bomba; IoT agrícola offline; controlador de irrigação; funcionamento a seco; "edge computing" agrícola.</td></tr>
+<tr><td>Bases e fontes a consultar</td><td>INPI (busca de patentes e programas de computador) · Google Patents · Google Scholar e SciELO · Embrapa · ANA · sites e manuais de fabricantes · normas técnicas. <span class="ph">[registrar data de acesso e link de cada fonte]</span></td></tr>
+</table>
+<h3>Matriz comparativa (hipóteses a verificar)</h3>
+<table>
+<tr><th style="width:21%">Categoria de solução</th><th>Exemplos para pesquisar</th><th style="width:19%">Decisão de irrigação por solo/clima</th><th style="width:17%">Vazão e anomalias</th><th style="width:15%">Funciona offline</th><th style="width:12%">Custo / porte</th></tr>
+<tr><td>Controladores/programadores de irrigação</td><td>Hunter, Rain Bird (linhas de controladores) <span class="ph">[verificar]</span></td><td>Programação por tempo; sensores opcionais</td><td>Geralmente opcional</td><td>Em geral sim (programação local)</td><td><span class="ph">[cotar]</span></td></tr>
+<tr><td>Plataformas de agricultura de precisão / sensores conectados</td><td>CropX, Lindsay FieldNET <span class="ph">[verificar]</span></td><td>Sim, via nuvem</td><td>Varia por produto</td><td>Depende de conectividade</td><td><span class="ph">[cotar]</span></td></tr>
+<tr><td>Medidores de vazão isolados</td><td>Eletromagnéticos, ultrassônicos, de turbina <span class="ph">[verificar]</span></td><td>Não</td><td>Medem; análise de anomalia por conta do usuário</td><td>Sim (display local)</td><td><span class="ph">[cotar]</span></td></tr>
+<tr><td>Sondas de qualidade da água</td><td>Sondas multiparâmetro de pH/CE/turbidez <span class="ph">[verificar]</span></td><td>Não</td><td>Não</td><td>Varia</td><td><span class="ph">[cotar]</span></td></tr>
+<tr><td>Planilhas e anotações manuais</td><td>Prática corrente (a confirmar nas entrevistas)</td><td>Dependente do operador</td><td>Não</td><td>Sim</td><td>Baixo</td></tr>
+</table>
+<table class="kv">
+<tr><td>Critérios de comparação</td><td>Funcionalidade · operação sem internet · possibilidade de retrofit (aproveitar bomba e linha existentes) · integração solo + vazão + (futuro) água · custo de implantação e mensalidade · maturidade · acessibilidade ao pequeno produtor.</td></tr>
+<tr><td>Lacunas (hipótese a confirmar)</td><td>Poucas soluções reuniriam, em um kit modular acessível, recomendação por solo/clima, detecção de anomalia de vazão com histórico e operação local garantida sem internet.</td></tr>
+<tr><td>Diferencial proposto</td><td>Combinação em módulos (começar por irrigação + vazão), operação local como requisito de projeto, retrofit em infraestrutura existente e atendimento próximo na calibração. O projeto não pretende competir com grandes sistemas de gestão de fazendas.</td></tr>
+<tr><td>Parecer técnico final</td><td><span class="ph">[após a pesquisa: há espaço para a proposta? o que é anterioridade, inspiração ou adaptação? cuidados com propriedade intelectual — Guia, cap. 7]</span></td></tr>
+</table>
+
+<!-- ===== ENTREGA 5 ===== -->
+<div class="sec"></div>
+<h1><span class="n">5</span>Proposta de valor e modelagem da solução</h1><div class="bar"></div>
+<table class="kv">
+<tr><td>Público beneficiário</td><td>Produtores e gestores de propriedades de cana-de-açúcar de Jaú e região com irrigação pressurizada, captação própria e bomba elétrica; operador de irrigação como usuário direto.</td></tr>
+<tr><td>Dores</td><td>Irrigar fora do momento ideal; vazamentos, entupimentos e bomba a seco percebidos tarde; falta de registro histórico; internet instável.</td></tr>
+<tr><td>Ganhos esperados</td><td>Decisões de irrigação apoiadas em dado; alerta precoce de anomalia de vazão; registro contínuo; continuidade sem internet. A economia só será declarada com dados comparáveis.</td></tr>
+<tr><td>Solução proposta</td><td>Kit modular: sensor de umidade + dado climático + medidor de vazão + controlador com armazenamento local + painel local e conectado. Módulos futuros: indicadores da água (triagem) e comando de bomba/válvulas com proteções.</td></tr>
+<tr><td>Diferencial</td><td>Operação local sem internet, retrofit, módulos, vazão + solo em um só sistema, decisão final sempre do operador.</td></tr>
+<tr><td>Requalificação das atividades (Guia, cap. 0 e 3)</td><td>O operador deixa de abrir/fechar por calendário e de percorrer a linha às cegas e passa a supervisionar painel, validar alertas, ajustar limiares e registrar ocorrências; o técnico passa a analisar dados e calibrar; surgem funções de instalação e manutenção de sensores. <i>A validar nas entrevistas (perguntas 7 e 8).</i></td></tr>
+<tr><td>Evidências que sustentam</td><td>Dados ANA/IBGE (contexto) · entrevistas <span class="ph">[Entrega 3]</span> · benchmarking <span class="ph">[Entrega 4]</span> · testes de bancada <span class="ph">[Entrega 8]</span></td></tr>
+</table>
+<h3>Lean Canvas</h3>
+<div class="canvas">
+<div class="h w2">Lean Canvas — Raiz</div><div class="h"><b>FEITO POR</b>Equipe Atlas</div><div class="h"><b>DATA</b>17/11/2026</div><div class="h"><b>VERSÃO</b>v1.0</div>
+<div><b>2. Problema</b><small>até 3</small>1) Irrigação por calendário/olhar. 2) Falhas de vazão percebidas tarde. 3) Soluções dependem de internet.</div>
+<div><b>4. Solução</b><small>funcionalidades</small>Recomendação de irrigação (solo+clima); alerta de anomalia de vazão; registro e alerta local offline.</div>
+<div><b>3. Proposta Única de Valor</b><small>por que é diferente</small>Saber quando irrigar e ser avisado quando a vazão foge do normal — com ou sem internet.</div>
+<div><b>9. Vantagem difícil de copiar</b>Calibração local (cana/solo de Jaú), histórico de dados do cliente, rede de parceiros regionais.</div>
+<div><b>1. Segmentos de clientes</b>Produtores de cana de Jaú e região com captação própria e bomba elétrica.</div>
+<div class="y"><b>Alternativas existentes</b>Calendário fixo, anotações, controladores, plataformas em nuvem, medidores isolados.</div>
+<div class="y"><b>8. Métricas</b>% de leituras registradas; falhas simuladas detectadas; falsos alertas; tempo até o alerta; funcionamento offline; compreensão do operador.</div>
+<div class="y"><b>Conceito de alto nível</b>“Um painel de bordo com alarme para a irrigação.”</div>
+<div class="y"><b>5. Canais</b>Visitas técnicas, dias de campo, cooperativas, empresas de irrigação, agrônomos, indicação.</div>
+<div class="y"><b>Primeiros adotantes</b>Propriedade-piloto com poço regularizado e energia, a selecionar; parceiros das entrevistas.</div>
+<div class="w3"><b>7. Estrutura de custos</b>Componentes e kits; montagem; instalação e calibração; software e armazenamento; comunicação; deslocamento; suporte e garantia. <i>Custo da bancada do MVP:</i> <span class="ph">[cotar a lista de materiais da Entrega 6]</span>. Premissas de implantação no Anexo A.</div>
+<div class="w2"><b>6. Receita / faturamento</b>Premissa a validar: implantação ≈ R$ 9.900 (talhão de 10 ha, infraestrutura existente) + assinatura ≈ R$ 249/mês; manutenção, módulos e laboratório à parte. <b>Não são vendas nem cotações.</b></div>
+</div>
+
+<!-- ===== ENTREGA 6 ===== -->
+<div class="sec"></div>
+<h1><span class="n">6</span>Planejamento do projeto e desenvolvimento do MVP</h1><div class="bar"></div>
+<table class="kv">
+<tr><td>Objetivo do MVP</td><td>Provar em bancada, com falhas simuladas, que um controlador de baixo custo (a) recomenda irrigação a partir de umidade do solo e dado climático, (b) sinaliza desvio de vazão em relação ao esperado e (c) mantém leitura, registro e alerta sem internet, sincronizando depois.</td></tr>
+<tr><td>Funcionalidades prioritárias (máx. 3)</td><td><b>F1</b> Recomendação de irrigação (operador aceita/ajusta/recusa) · <b>F2</b> Detecção de anomalia de vazão com alerta e registro · <b>F3</b> Operação local offline com sincronização posterior.</td></tr>
+<tr><td>Dentro do escopo</td><td>Bancada com tensão baixa (≤ 12 V); reservatório, mini-bomba 12 V simulando o poço, sensor de umidade em vaso, medidor de vazão, válvulas para simular entupimento e vazamento, controlador com relógio de tempo real e armazenamento local, display local e painel simples; dado climático simulado ou de fonte pública, <b>sempre rotulado</b>.</td></tr>
+<tr><td>Fora do escopo desta etapa</td><td>Instalação em poço e bomba reais · tensão de rede · pH/condutividade/turbidez (módulo futuro, apenas triagem) · comando remoto de bomba · qualquer afirmação de economia ou de potabilidade.</td></tr>
+<tr><td>Maturidade (Guia, cap. 2)</td><td>Hoje: TRL 2 → 3 (conceito e prova de conceito analítica). Meta: TRL 4 (validado em laboratório) com MRL 3. Piloto em campo = TRL 5, fase posterior.</td></tr>
+</table>
+<h3>Arquitetura do MVP</h3>
+<svg viewBox="0 0 700 150" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica,Arial" font-size="10">
+ <defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#e8501a"/></marker></defs>
+ <rect x="8" y="12" width="150" height="38" rx="5" fill="#eef3fb" stroke="#17409a"/><text x="83" y="35" text-anchor="middle">Sensor de umidade do solo</text>
+ <rect x="8" y="58" width="150" height="38" rx="5" fill="#eef3fb" stroke="#17409a"/><text x="83" y="81" text-anchor="middle">Medidor de vazão</text>
+ <rect x="8" y="104" width="150" height="38" rx="5" fill="#fffbf2" stroke="#e8501a"/><text x="83" y="127" text-anchor="middle">Dado climático (rotulado)</text>
+ <rect x="235" y="30" width="190" height="90" rx="6" fill="#17409a"/><text x="330" y="55" text-anchor="middle" fill="#fff" font-weight="700">Controlador (ESP32)</text>
+ <text x="330" y="74" text-anchor="middle" fill="#fff">regras F1 e F2 · relógio (RTC)</text><text x="330" y="90" text-anchor="middle" fill="#fff">registro local com data/hora</text><text x="330" y="106" text-anchor="middle" fill="#fff">proteção contra funcionar a seco</text>
+ <rect x="505" y="12" width="187" height="38" rx="5" fill="#eef3fb" stroke="#17409a"/><text x="598" y="35" text-anchor="middle">Painel local + alerta (offline)</text>
+ <rect x="505" y="58" width="187" height="38" rx="5" fill="#eef3fb" stroke="#17409a"/><text x="598" y="81" text-anchor="middle">Painel conectado (sincroniza)</text>
+ <rect x="505" y="104" width="187" height="38" rx="5" fill="#fffbf2" stroke="#e8501a"/><text x="598" y="127" text-anchor="middle">Relé → mini-bomba 12 V (bancada)</text>
+ <g stroke="#e8501a" stroke-width="1.6" marker-end="url(#a)" fill="none"><line x1="158" y1="31" x2="233" y2="55"/><line x1="158" y1="77" x2="233" y2="77"/><line x1="158" y1="123" x2="233" y2="100"/><line x1="425" y1="55" x2="503" y2="31"/><line x1="425" y1="77" x2="503" y2="77"/><line x1="425" y1="100" x2="503" y2="123"/></g>
+</svg>
+<h3>Regras iniciais (a calibrar na bancada)</h3>
+<ul>
+<li><b>F1:</b> se a umidade ficar abaixo do limiar crítico (definido pela curva de calibração do sensor no solo usado) e não houver chuva prevista no horizonte configurado, o painel recomenda irrigar e sugere a duração; o operador decide.</li>
+<li><b>F2:</b> a vazão de referência é medida na linha de base (média de ciclos em condição normal). Alerta quando o desvio persistir acima de X% por mais de T segundos. Valores iniciais sugeridos: X = 20% e T = 30 s, a calibrar. Vazão ≈ 0 com bomba ligada → parada e alerta de funcionamento a seco.</li>
+<li><b>F3:</b> leitura, registro com data/hora e alerta no painel local não dependem de internet; os registros pendentes são enviados quando o sinal retorna.</li>
+</ul>
+<h3>Protocolo de teste e metas (não são resultados)</h3>
+<table>
+<tr><th style="width:8%">Teste</th><th>Descrição</th><th style="width:34%">Meta de validação</th></tr>
+<tr><td>T1</td><td>Operação offline: Wi-Fi desligado, ciclos de irrigação com leitura, registro, alerta e comando local.</td><td>Leitura, registro e comando local funcionando em 100% dos ciclos sem internet</td></tr>
+<tr><td>T2</td><td>Operação conectada: sincronização dos registros, painel e alertas após retorno do sinal.</td><td>≥ 90% das leituras programadas registradas; 100% dos registros offline sincronizados</td></tr>
+<tr><td>T3</td><td>Falhas simuladas: estrangular a saída (entupimento), abrir derivação (vazamento), esvaziar reservatório (a seco) — <span class="ph">[n repetições]</span>.</td><td>Registrar detecções, falsos alertas e tempo até o alerta; cada alerta confirmado ou descartado por inspeção</td></tr>
+<tr><td>T4</td><td>Usabilidade: operador/técnico lê o painel e explica a recomendação (n = <span class="ph">[ ]</span>).</td><td>Compreensão relatada pelos usuários; ajustes de interface registrados</td></tr>
+</table>
+<h3>Etapas, responsáveis e cronograma ancorado no calendário nacional</h3>
+<table>
+<tr><th style="width:17%">Período</th><th>Etapa</th><th style="width:28%">Responsável</th></tr>
+<tr><td>17 a 19/11</td><td>Fechar Entregas 1 a 7 (versão submetível); entrevistas mínimas; lista de materiais; início da bancada; submissão pela unidade/DR (<b>confirmar o prazo interno</b>)</td><td><span class="ph">[nome]</span></td></tr>
+<tr><td>20/11 a 28/11</td><td>Montagem da bancada, calibração do sensor, código das regras F1 a F3</td><td><span class="ph">[eletrônica/programação]</span></td></tr>
+<tr><td>29/11 a 08/12</td><td>Testes T1 a T4, registro de dados, vídeo, fotos autorizadas; atualização da pesquisa</td><td><span class="ph">[nome]</span></td></tr>
+<tr><td>09 a 11/12</td><td>Portfólio e pitch para a banca regional (avaliação 23/11 a 11/12 — alinhar com a unidade a data da apresentação)</td><td><span class="ph">[coordenação do projeto]</span></td></tr>
+<tr><td>14 a 16/12</td><td>Janela de atualização dos classificados: incluir resultados dos testes e ajustes das bancas</td><td>Equipe</td></tr>
+<tr><td>A partir de 17/12</td><td>Avaliação nacional; defesa técnica do MVP</td><td>Equipe + orientador</td></tr>
+</table>
+<p class="small">Papéis previstos no projeto de origem: coordenação do produto e da documentação · eletrônica, programação, comunicação local e painel · relacionamento, parcerias e orçamento. Serviços elétricos, hidráulicos e laboratoriais podem ser apoiados por terceiros em fases futuras, sem assumir autoria (Art. 15).</p>
+<h3>Recursos necessários (lista de materiais — cotar)</h3>
+<table>
+<tr><th>Item</th><th style="width:44%">Observação</th><th style="width:16%">Custo</th></tr>
+<tr><td>Microcontrolador com Wi-Fi (ESP32) + relógio RTC</td><td>Hora correta sem internet</td><td><span class="ph">[cotar]</span></td></tr>
+<tr><td>Sensor de umidade do solo (capacitivo)</td><td>Calibrar no solo usado</td><td><span class="ph">[cotar]</span></td></tr>
+<tr><td>Medidor de vazão (efeito Hall) e tubulação de bancada</td><td>Calibrar com recipiente graduado e cronômetro</td><td><span class="ph">[cotar]</span></td></tr>
+<tr><td>Mini-bomba 12 V, fonte 12 V, relé/driver, reservatório, válvulas</td><td>Tensão baixa, sem rede elétrica no MVP</td><td><span class="ph">[cotar]</span></td></tr>
+<tr><td>Armazenamento local (memória flash/cartão), display, caixa de proteção</td><td>Registro com data e hora</td><td><span class="ph">[cotar]</span></td></tr>
+</table>
+<h3>Riscos e mitigação</h3>
+<table>
+<tr><th style="width:36%">Risco</th><th>Mitigação</th></tr>
+<tr><td>Sensor mal posicionado ou descalibrado gera leitura errada</td><td>Registrar posição, calibrar e comparar com pesagem de amostra de solo</td></tr>
+<tr><td>Falso alerta de vazamento</td><td>Analisar com pressão/horário/válvulas e confirmar em inspeção local</td></tr>
+<tr><td>Prazo curto até a banca regional</td><td>Priorizar F1 a F3; cortar escopo antes de atrasar; registrar mudanças de escopo</td></tr>
+<tr><td>Risco elétrico</td><td>Bancada ≤ 12 V; qualquer ligação em rede ou bomba real só com profissional habilitado (NR-10) e plano de segurança</td></tr>
+<tr><td>Dependência de IA</td><td>Registrar usos, validar e conseguir explicar todo o código e o texto (Art. 72, 75)</td></tr>
+</table>
+
+<!-- ===== ENTREGA 7 ===== -->
+<div class="sec"></div>
+<h1><span class="n">7</span>Registro do uso de IA e validação humana</h1><div class="bar"></div>
+<div class="box"><b class="t">Regra (Art. 68, 73 e 74)</b>Registrar interações relevantes: data, ferramenta, objetivo, prompt, síntese da saída, análise crítica, validação humana e decisão final (utilizado, adaptado ou descartado). Não inserir dados pessoais ou sigilosos em ferramentas de IA (Art. 82).</div>
+<table>
+<tr><th style="width:9%">Data</th><th style="width:12%">Ferramenta</th><th style="width:16%">Objetivo</th><th style="width:19%">Prompt / síntese da saída</th><th>Análise crítica e validação humana</th><th style="width:12%">Decisão final</th></tr>
+<tr><td>17/11/2026</td><td>Claude (Anthropic)</td><td>Análise do regulamento INTEGRA e adaptação do projeto Raiz às 8 entregas; elaboração de rascunho deste dossiê.</td><td>Pedido: analisar regulamento, guia, caderno e o relatório do ATLAS e adaptar o conteúdo. Saída: matriz de aderência e rascunho do dossiê com campos pendentes sinalizados.</td><td><span class="ph">[a equipe deve ler tudo, conferir cada artigo citado no Regulamento, corrigir o que não corresponder ao projeto real e confirmar fontes e números antes de assinar]</span></td><td><span class="ph">☐ utilizado ☐ adaptado ☐ descartado</span></td></tr>
+<tr><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td></tr>
+<tr><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td><td><span class="ph">[ ]</span></td></tr>
+</table>
+<p class="small">Incluir também o uso de IA na elaboração do relatório de origem (ATLAS), se houve, e em código, imagens ou roteiros do MVP. Fontes verificadas para validar informações: <span class="ph">[listar]</span>.</p>
+<div class="box b"><b class="t">Checklist</b>☐ Ferramentas identificadas ☐ Prompts relevantes ☐ Respostas sintetizadas ☐ Validação humana explicada ☐ Fontes verificadas ☐ Decisão final registrada</div>
+
+<!-- ===== ENTREGA 8 ===== -->
+<div class="sec"></div>
+<h1><span class="n">8</span>MVP, pitch e portfólio essencial de evidências</h1><div class="bar"></div>
+<table class="kv">
+<tr><td>Resumo (até 5 linhas)</td><td>Produtores de cana de Jaú decidem a irrigação por calendário e percebem falhas de vazão tarde. O Raiz recomenda quando irrigar (solo + clima) e alerta desvios de vazão, registrando tudo localmente, mesmo sem internet. MVP de bancada (TRL 4 como meta), sem resultados de campo ainda; módulos de água e de comando real de bomba ficam como evolução.</td></tr>
+<tr><td>MVP ou protótipo</td><td>Médio fidelidade, físico: bancada com controlador, sensores, bomba simulada de 12 V, painel local e sincronização. <span class="ph">[descrever o que foi efetivamente construído e o estado em cada data]</span></td></tr>
+<tr><td>Funcionalidades demonstradas</td><td>F1 recomendação de irrigação · F2 alerta de anomalia de vazão · F3 operação offline + sincronização</td></tr>
+<tr><td>Validações realizadas</td><td><span class="ph">[T1 a T4 e entrevistas — somente o que foi feito, com datas e n]</span></td></tr>
+<tr><td>Resultados obtidos</td><td><span class="ph">[aprendizados e medições reais; declarar dados simulados, estimados ou de escala reduzida — Guia, cap. 6]</span></td></tr>
+</table>
+<h3>Roteiro do pitch</h3>
+<table>
+<tr><th style="width:5%">#</th><th style="width:16%">Bloco</th><th>Conteúdo sugerido</th></tr>
+<tr><td>1</td><td>Problema</td><td>Irrigação por calendário e falhas de vazão percebidas tarde; dado ANA como contexto</td></tr>
+<tr><td>2</td><td>Público</td><td>Produtor, operador e técnico da cana em Jaú; o que disseram nas entrevistas</td></tr>
+<tr><td>3</td><td>Solução</td><td>Raiz: recomendação + alerta de vazão + funcionamento offline; decisão final do operador</td></tr>
+<tr><td>4</td><td>MVP</td><td>Demonstração da bancada ao vivo ou em vídeo (F1, F2, F3)</td></tr>
+<tr><td>5</td><td>Validação</td><td>Testes T1 a T4 e feedback de usuários, com os limites declarados</td></tr>
+<tr><td>6</td><td>Diferencial</td><td>Offline, retrofit, módulos, benchmarking e lacuna encontrada</td></tr>
+<tr><td>7</td><td>Impacto</td><td>Água e energia, segurança, requalificação do operador; ODS 2, 6, 12 e 13; sem prometer economia ainda</td></tr>
+<tr><td>8</td><td>Próximos passos</td><td>Piloto em talhão de ~10 ha com poço regularizado, comando de bomba com proteções, módulo de água, decisão de escala</td></tr>
+</table>
+<h3>Portfólio de evidências (pasta única, nomes padronizados)</h3>
+<table>
+<tr><th>Arquivo</th><th style="width:48%">Conteúdo</th></tr>
+<tr><td>RAIZ_ATLAS_E1_PlanoEnsino.pdf</td><td>Plano assinado pelos docentes e coordenação</td></tr>
+<tr><td>RAIZ_ATLAS_E2_Diagnostico.pdf · E3_Pesquisa.pdf · E4_Anterioridade.pdf</td><td>Diagnóstico, pesquisa com usuários e benchmarking com fontes</td></tr>
+<tr><td>RAIZ_ATLAS_E5_PropostaValor_LeanCanvas.pdf</td><td>Proposta de valor e Lean Canvas</td></tr>
+<tr><td>RAIZ_ATLAS_E6_PlanejamentoMVP.pdf</td><td>Etapas, cronograma, riscos, protocolo</td></tr>
+<tr><td>RAIZ_ATLAS_E7_RegistroIA.pdf</td><td>Registro de IA e validação humana</td></tr>
+<tr><td>RAIZ_ATLAS_E8_Pitch.pdf · Video_MVP · Fotos · Planilha_Testes</td><td>Pitch, vídeo da bancada, fotos autorizadas e dados dos testes (declarar o que é simulado)</td></tr>
+</table>
+
+<h2>Segurança, ética e conformidade</h2>
+<table>
+<tr><th style="width:27%">Tema</th><th>Cuidado adotado no Raiz</th></tr>
+<tr><td>Segurança elétrica e de máquinas</td><td>Bancada em baixa tensão; comando manual e proteção contra funcionamento a seco desde o MVP; instalação real somente por profissional habilitado, observando NR-10 e, quando aplicável, NR-12</td></tr>
+<tr><td>Uso do poço</td><td>Piloto de campo só com cadastro, outorga ou dispensa aplicável (SP Águas, 2026)</td></tr>
+<tr><td>Qualidade da água</td><td>pH, condutividade e turbidez serão triagem de alteração, <b>nunca prova de potabilidade</b>; qualquer avaliação de consumo humano ou animal exige análise laboratorial</td></tr>
+<tr><td>Dados e privacidade (LGPD)</td><td>Dados mínimos, anonimização nos anexos, acesso controlado por propriedade, ciência dos entrevistados</td></tr>
+<tr><td>IA e autoria</td><td>Registro de IA, validação humana, equipe capaz de explicar todo o conteúdo</td></tr>
+<tr><td>Imagens e marcas</td><td>Sem marcas de terceiros ou fotos sem autorização (Art. 104)</td></tr>
+</table>
+<h2>Indicadores e como serão medidos (Guia, cap. 6)</h2>
+<table>
+<tr><th style="width:20%">Dimensão</th><th>Indicador</th><th style="width:36%">Medição no contexto educacional</th></tr>
+<tr><td>Produtividade / recursos</td><td>Volume bombeado por ciclo; horas de bomba</td><td>Registro da bancada vs. medição com recipiente graduado</td></tr>
+<tr><td>Qualidade da decisão</td><td>% de leituras registradas; falhas detectadas; falsos alertas; tempo até o alerta</td><td>Testes T1 a T3 com n declarado</td></tr>
+<tr><td>Segurança</td><td>Parada por funcionamento a seco; menos ida a campo para inspeção</td><td>Teste T3; relato de entrevistados (estimativa declarada)</td></tr>
+<tr><td>Usabilidade / ergonomia</td><td>Compreensão da recomendação pelo operador</td><td>Teste T4 com questionário simples</td></tr>
+<tr><td>Requalificação</td><td>Novas atividades e competências do operador/técnico</td><td>Entrevistas e mapa de novas atividades</td></tr>
+</table>
+<p class="small">Regra de transparência: dado simulado, estimado ou de escala reduzida deve ser declarado como tal.</p>
+
+<h2>Próximos passos e evolução (após o INTEGRA)</h2>
+<ol>
+<li><b>Fase 1 — bancada (esta etapa):</b> MVP e testes T1 a T4.</li>
+<li><b>Fase 2 — piloto demonstrativo:</b> talhão de cerca de 10 ha em Jaú, com autorização do produtor, poço regularizado e energia; linha de base e teste local × conectado; comando de bomba/válvulas somente após calibração, limites de operação, proteção a seco e comando manual.</li>
+<li><b>Fase 3 — módulo da água:</b> pH, condutividade e turbidez como triagem, com procedimento de encaminhamento a laboratório.</li>
+<li><b>Fase 4 — decisão de escala:</b> com base em dados, custo real, compreensão do operador e capacidade de manutenção.</li>
+</ol>
+
+<h2>Referências (ABNT)</h2>
+<p style="text-align:left;font-size:9pt">AGÊNCIA NACIONAL DE ÁGUAS E SANEAMENTO BÁSICO (ANA). <b>Série especial: água e desenvolvimento.</b> Brasília, DF, 2026. Disponível em: https://www.gov.br/ana/pt-br/assuntos/noticias-e-eventos/noticias-periodo-eleitoral-2026/serie-especial-agua-e-desenvolvimento. Acesso em: 22 set. 2026.</p>
+<p style="text-align:left;font-size:9pt">INSTITUTO BRASILEIRO DE GEOGRAFIA E ESTATÍSTICA (IBGE). <b>Produção de cana-de-açúcar em São Paulo.</b> Rio de Janeiro, 2025. Disponível em: https://www.ibge.gov.br/explica/producao-agropecuaria/cana-de-acucar/sp. Acesso em: 22 set. 2026. <span class="ph">[confirmar a fonte municipal exata do valor de Jaú, ex.: PAM/SIDRA]</span></p>
+<p style="text-align:left;font-size:9pt">SÃO PAULO (Estado). SP Águas. <b>Quem deve pedir outorga?</b> São Paulo, 2026. Disponível em: https://www.daee.sp.gov.br/site/quem-deve-pedir-outorga/. Acesso em: 22 set. 2026.</p>
+<p style="text-align:left;font-size:9pt">SENAI. Departamento Nacional. <b>Regulamento INTEGRA SENAI 2026</b> — v3.0. Brasília, 2026. · <b>Caderno Nacional de Templates das Entregas Obrigatórias</b> (Anexo 1) · <b>Guia de Tecnologias para Aumento de Produtividade, Segurança, Qualidade e Requalificação de Atividades Operacionais</b> (Anexo 3).</p>
+<p style="text-align:left;font-size:9pt"><span class="ph">[acrescentar as fontes do benchmarking (Entrega 4) e das entrevistas]</span></p>
+
+<h2>Checklist geral de submissão (Caderno)</h2>
+<div class="box b chk"><ul>
+<li>☐ Arquivos nomeados com projeto, equipe e entrega</li>
+<li>☐ PDFs legíveis, com texto selecionável</li>
+<li>☐ Links de vídeo, protótipo e pasta acessíveis; evidências em pasta única</li>
+<li>☐ Uso de IA registrado e validado pela equipe</li>
+<li>☐ Plano de Ensino com validação pedagógica assinada</li>
+<li>☐ Lean Canvas coerente com diagnóstico, pesquisa e proposta de valor</li>
+<li>☐ MVP demonstra as funcionalidades planejadas (F1 a F3)</li>
+<li>☐ Pitch com problema, solução, validação, diferencial e próximos passos</li>
+<li>☐ Sem dados sensíveis, sigilosos ou materiais de terceiros sem referência</li>
+</ul></div>
+
+<!-- ===== ANEXO A ===== -->
+<div class="sec"></div>
+<h1><span class="n">A</span>Anexo — Premissas econômicas (plano de negócios do Raiz)</h1><div class="bar"></div>
+<div class="box o"><b class="t">Natureza</b>Material opcional, herdado do plano de negócios do projeto de origem. São <b>premissas de planejamento</b>, não vendas, cotações fechadas ou garantia de resultado. Devem ser substituídas por cotações e pelos dados do piloto.</div>
+<table>
+<tr><th>Premissa</th><th style="width:30%">Valor</th></tr>
+<tr><td>Investimento inicial estimado para um piloto comercial</td><td>R$ 26.000</td></tr>
+<tr><td>Custo direto por implantação (hardware, montagem, instalação, calibração, treinamento)</td><td>R$ 6.200</td></tr>
+<tr><td>Preço estimado de implantação (talhão de 10 ha, infraestrutura principal existente)</td><td>R$ 9.900</td></tr>
+<tr><td>Assinatura mensal de monitoramento · custo variável por assinatura</td><td>R$ 249 · R$ 60</td></tr>
+<tr><td>Despesa fixa mensal (conservador/base · otimista)</td><td>R$ 5.500 · R$ 7.000</td></tr>
+<tr><td>Provisão tributária de planejamento</td><td>6% da receita (a confirmar com contador)</td></tr>
+</table>
+<table>
+<tr><th>Cenário</th><th>Volume anual</th><th>Faturamento</th><th>Resultado operacional (aprox.)</th></tr>
+<tr><td>Conservador</td><td>12 implantações; 6 assinaturas médias</td><td>R$ 136.728</td><td>− R$ 16.200</td></tr>
+<tr><td>Base</td><td>24 implantações; 12 assinaturas médias</td><td>R$ 273.456</td><td>R$ 33.600</td></tr>
+<tr><td>Otimista</td><td>36 implantações; 18 assinaturas médias</td><td>R$ 410.184</td><td>R$ 65.400</td></tr>
+</table>
+<p>Contribuição por assinatura: R$ 249 − R$ 60 − 6% (R$ 14,94) = R$ 174,06/mês. Contribuição por implantação após a provisão: R$ 9.900 × 0,94 − R$ 6.200 = R$ 3.106. Ponto de equilíbrio simplificado: 32 assinaturas para cobrir R$ 5.500/mês sem novas implantações, ou 14 assinaturas com uma implantação no mês. Não foi elaborado fluxo de caixa mensal, portanto o prazo de retorno do investimento não é estimado. O cenário otimista exige parceiro de instalação e apoio técnico adicional.</p>
+
+</body>
+</html>

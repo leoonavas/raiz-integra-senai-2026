@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Raiz — MVP digital · Equipe Atlas</title>
+<meta name="description" content="Simulador funcional do Raiz: recomendação de irrigação, alerta de anomalia de vazão e operação offline. Dados simulados.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#12392a">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<noscript><p style="padding:2rem">Este MVP precisa de JavaScript habilitado.</p></noscript>
+
+<header class="top">
+  <div class="brand">
+    <img src="assets/logo-raiz.svg" alt="" width="44" height="44">
+    <div><h1>Raiz</h1><p>Gestão da água na irrigação · Equipe Atlas</p></div>
+  </div>
+  <nav class="tabs" aria-label="Seções">
+    <button data-view="painel" class="on">Painel</button>
+    <button data-view="bancada">Bancada</button>
+    <button data-view="registro">Registro</button>
+    <button data-view="ajustes">Ajustes</button>
+    <button data-view="testes">Testes</button>
+    <button data-view="sobre">Sobre</button>
+  </nav>
+  <div class="status">
+    <span class="badge sim" title="Nenhum dado desta tela vem de sensores reais">DADOS SIMULADOS</span>
+    <button id="btnNet" class="net on" aria-pressed="true" title="Simula queda e retorno da internet">
+      <img id="netIco" src="assets/icon-cloud.svg" alt="" width="18" height="18"><span id="netTxt">Online</span>
+    </button>
+    <span class="clock" id="clock">Dia 1 · 06:00</span>
+  </div>
+</header>
+
+<div class="toolbar" role="region" aria-label="Controles da simulação">
+  <div class="grp">
+    <div class="seg" id="modeSeg" role="group" aria-label="Modo">
+      <button data-mode="demo" class="on" title="Você injeta falhas e cenários">Demonstração</button>
+      <button data-mode="prod" title="Eventos acontecem sozinhos, de forma aleatória">Operação</button>
+    </div>
+  </div>
+  <div class="grp">
+    <button id="btnPlay" class="btn">⏸ Pausar</button>
+    <label class="sel">Velocidade
+      <select id="speed"><option value="1">1×</option><option value="2">2×</option><option value="5" selected>5×</option><option value="20">20×</option><option value="60">60×</option></select>
+    </label>
+  </div>
+  <div class="grp prodonly">
+    <span class="lbl">Eventos aleatórios</span>
+    <label class="sel">Intensidade
+      <select id="envK"><option value="0.5">Baixa</option><option value="1" selected>Média</option><option value="2.5">Alta</option></select>
+    </label>
+    <span class="seed" title="Mesma semente = mesma sequência de eventos">semente <b id="seedTxt"></b></span>
+    <button id="btnSeed" class="btn ghost sm">Nova semente</button>
+    <label class="inl"><input type="checkbox" id="vop"> Operador virtual</label>
+  </div>
+  <div class="grp demoonly">
+    <span class="lbl">Cenários</span>
+    <button id="btnSeco" class="btn ghost">☀ Dia seco</button>
+    <button id="btnChuva" class="btn ghost">🌧 Chuva prevista</button>
+    <button id="btnDemo" class="btn accent">▶ Demonstração guiada</button>
+  </div>
+  <div class="grp demoonly">
+    <span class="lbl">Falha simulada</span>
+    <button class="btn ghost f" data-fault="clog">Entupimento</button>
+    <button class="btn ghost f" data-fault="leak">Vazamento</button>
+    <button class="btn ghost f" data-fault="dry">Bomba a seco</button>
+    <button class="btn ghost f on" data-fault="none">Normal</button>
+  </div>
+</div>
+<div id="demoCap" class="democap" hidden><span id="demoTxt"></span><button id="btnDemoStop" class="btn ghost sm">Encerrar</button></div>
+
+<div id="alertbar" class="alertbar" role="alert" hidden>
+  <img src="assets/icon-alert.svg" alt="" width="26" height="26">
+  <div class="am"><b id="alertTitle"></b><span id="alertMsg"></span></div>
+  <div class="aa"><button id="btnConfirm" class="btn sm">Confirmar (inspeção)</button><button id="btnDiscard" class="btn ghost sm">Descartar</button></div>
+</div>
+
+<main>
+<!-- ============ PAINEL ============ -->
+<section id="view-painel" class="view on">
+  <div class="metrics">
+    <article class="card m">
+      <header><img src="assets/icon-soil.svg" alt="" width="28" height="28"><h3>Umidade do solo</h3><span class="chip" id="cM"></span></header>
+      <div class="val"><span id="vM">—</span></div>
+      <div class="bar"><i id="barM"></i><u id="mkCrit" title="Limiar crítico"></u><u id="mkTarget" class="t" title="Umidade-alvo"></u></div>
+      <p class="sub">Limiar crítico <b id="sCrit"></b>% · alvo <b id="sTarget"></b>%</p>
+    </article>
+    <article class="card m">
+      <header><img src="assets/icon-flow.svg" alt="" width="28" height="28"><h3>Vazão</h3><span class="chip" id="cQ"></span></header>
+      <div class="val"><span id="vQ">—</span><small>L/min</small></div>
+      <p class="sub" id="subQ"></p>
+    </article>
+    <article class="card m">
+      <header><img src="assets/icon-pressure.svg" alt="" width="28" height="28"><h3>Pressão</h3><span class="chip" id="cP"></span></header>
+      <div class="val"><span id="vP">—</span><small>bar</small></div>
+      <p class="sub">Apoia a confirmação: pressão alta sugere entupimento; baixa, vazamento.</p>
+    </article>
+    <article class="card m">
+      <header><img src="assets/icon-temp.svg" alt="" width="28" height="28"><h3>Clima</h3><span class="chip" id="cR"></span></header>
+      <div class="val"><span id="vT">—</span><small>°C</small> <span class="sep"></span><span id="vR">—</span><small>% chuva</small></div>
+      <label class="rng">Temperatura <input type="range" min="10" max="42" step="1" data-cfg="temp"></label>
+      <label class="rng">Previsão de chuva <input type="range" min="0" max="100" step="5" data-cfg="rainProb"></label>
+      <button id="btnRain" class="btn ghost sm">Simular chuva agora (30 min)</button>
+    </article>
+  </div>
+
+  <div class="two">
+    <article class="card" aria-live="polite">
+      <header><h3>Recomendação de irrigação <span class="tag">F1</span></h3></header>
+      <div id="recBody"></div>
+    </article>
+    <article class="card">
+      <header><img src="assets/icon-pump.svg" alt="" width="28" height="28"><h3>Bomba <span class="tag">comando do operador</span></h3><span class="chip" id="pumpState"></span></header>
+      <div class="pump">
+        <div class="timer"><span id="pumpTimer">—</span><small id="pumpSub"></small></div>
+        <div class="ctl">
+          <label>Duração <input id="runMin" type="number" min="1" max="60" value="15"> min</label>
+          <button id="btnStart" class="btn">Ligar bomba</button>
+          <button id="btnStop" class="btn ghost">Desligar</button>
+        </div>
+        <button id="btnEmerg" class="btn danger">PARADA DE EMERGÊNCIA</button>
+        <div id="lockBox" class="lock" hidden><span id="lockMsg"></span><button id="btnRearm" class="btn sm">Rearmar após inspeção</button></div>
+      </div>
+      <p class="sub">A bomba só liga por comando do operador (manual ou recomendação aceita). Há parada de emergência e proteção contra funcionamento a seco.</p>
+    </article>
+  </div>
+
+  <article class="card prodonly">
+    <header><h3>Eventos do ambiente <span class="tag">aleatórios · modo Operação</span></h3></header>
+    <ul id="envFeed" class="feed"></ul>
+    <p class="sub" id="envChips"></p>
+    <p class="sub">Chuva, quedas de internet e de energia, falhas espontâneas (entupimento, vazamento, bomba a seco — latentes até a bomba ligar) e leituras espúrias surgem sozinhos. Ligue o <b>Operador virtual</b> para a simulação rodar sem ninguém na tela, ou atue você mesmo.</p>
+  </article>
+
+  <div class="two">
+    <article class="card"><header><h3>Umidade do solo (%)</h3></header><canvas id="chM" class="ch"></canvas><p class="lg"><i class="l1"></i>umidade <i class="l2"></i>limiar crítico <i class="l3"></i>alvo <i class="l4"></i>bomba ligada</p></article>
+    <article class="card"><header><h3>Vazão (L/min) <span class="tag">F2</span></h3></header><canvas id="chQ" class="ch"></canvas><p class="lg"><i class="l1 b"></i>vazão <i class="l5"></i>referência ± tolerância <i class="l4"></i>bomba ligada</p></article>
+  </div>
+
+  <div class="two">
+    <article class="card">
+      <header><h3>Controlador em campo <span class="tag">F3 · funciona sem internet</span></h3></header>
+      <pre id="lcd" class="lcd"></pre>
+    </article>
+    <article class="card">
+      <header><img id="cloudIco" src="assets/icon-cloud.svg" alt="" width="28" height="28"><h3>Painel remoto (nuvem)</h3></header>
+      <div id="remoteBody"></div>
+    </article>
+  </div>
+</section>
+
+<!-- ============ BANCADA ============ -->
+<section id="view-bancada" class="view">
+  <article class="card">
+    <header><h3>Esquema da bancada de laboratório</h3><span class="tag">clique nos componentes para simular falhas</span></header>
+    <svg id="bench" viewBox="0 0 900 430" role="img" aria-label="Esquema da bancada: reservatório, bomba, medidor de vazão, válvula, vaso com sensor de umidade, controlador e nuvem">
+      <defs>
+        <pattern id="soilp" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#8a5a2b"/><circle cx="2" cy="2" r="1" fill="#6d4420"/><circle cx="6" cy="6" r="1" fill="#a47038"/></pattern>
+        <clipPath id="potclip"><rect x="720" y="262" width="130" height="110" rx="6"/></clipPath>
+      </defs>
+      <!-- tubulação -->
+      <path class="pipe" id="pp1" d="M170 320H214"/>
+      <path class="pipe" id="pp2" d="M286 320H350"/>
+      <path class="pipe" id="pp3" d="M430 320H520"/>
+      <path class="pipe" id="pp4" d="M560 320H720"/>
+      <!-- reservatório -->
+      <g id="tank" class="hit" tabindex="0"><title>Reservatório — clique para esvaziar/encher (simula bomba a seco)</title>
+        <rect x="40" y="232" width="130" height="140" rx="8" fill="#fff" stroke="#1b6fa8" stroke-width="3"/>
+        <rect id="tankWater" x="43" y="260" width="124" height="109" rx="5" fill="#74b6e3"/>
+        <text x="105" y="395" text-anchor="middle" class="lab">Reservatório</text></g>
+      <!-- bomba -->
+      <g id="pump"><circle cx="250" cy="320" r="38" fill="#fff" stroke="#1f6b43" stroke-width="4"/>
+        <g id="impeller"><path d="M250 296v24M274 320h-24M250 344v-24M226 320h24" stroke="#1f6b43" stroke-width="5" stroke-linecap="round"/></g>
+        <circle id="pumpLed" cx="278" cy="290" r="6" fill="#999"/><text x="250" y="378" text-anchor="middle" class="lab">Bomba 12 V</text></g>
+      <!-- medidor -->
+      <g id="meter"><rect x="350" y="290" width="80" height="60" rx="8" fill="#fff" stroke="#1b6fa8" stroke-width="3"/>
+        <text x="390" y="314" text-anchor="middle" class="lab sm">Vazão</text>
+        <text id="bQ" x="390" y="337" text-anchor="middle" class="num">0,00</text>
+        <text x="390" y="378" text-anchor="middle" class="lab">Medidor</text></g>
+      <!-- válvula -->
+      <g id="valve" class="hit" tabindex="0"><title>Válvula — clique para simular entupimento</title>
+        <path d="M520 300l40 40v-40l-40 40z" fill="#fff" stroke="#1f6b43" stroke-width="3"/>
+        <rect id="valveBlock" x="526" y="306" width="28" height="28" rx="4" fill="#c0392b" opacity="0"/>
+        <text x="540" y="378" text-anchor="middle" class="lab">Válvula</text></g>
+      <!-- ponto de vazamento -->
+      <g id="leakpt" class="hit" tabindex="0"><title>Tubulação — clique para simular vazamento</title>
+        <rect x="610" y="296" width="60" height="48" fill="transparent"/>
+        <circle cx="640" cy="320" r="7" fill="#fff" stroke="#c98500" stroke-width="2.5"/>
+        <g id="drops" opacity="0"><circle class="drop d1" cx="640" cy="334" r="4" fill="#1b6fa8"/><circle class="drop d2" cx="634" cy="334" r="3" fill="#1b6fa8"/><circle class="drop d3" cx="646" cy="334" r="3" fill="#1b6fa8"/><ellipse cx="640" cy="388" rx="26" ry="5" fill="#74b6e3"/></g>
+        <text x="640" y="278" text-anchor="middle" class="lab sm">ponto de vazamento</text></g>
+      <!-- vaso -->
+      <g id="pot"><rect x="720" y="262" width="130" height="110" rx="6" fill="#fff" stroke="#8a5a2b" stroke-width="3"/>
+        <g clip-path="url(#potclip)"><rect id="soilFill" x="720" y="372" width="130" height="0" fill="url(#soilp)"/></g>
+        <path d="M785 262V226M785 234c-10 0-14-6-14-12 10 0 14 4 14 12M785 230c0-8 6-12 16-12 0 8-6 12-16 12" fill="none" stroke="#1f6b43" stroke-width="3" stroke-linecap="round"/>
+        <rect x="778" y="290" width="14" height="60" rx="3" fill="#2b2f36"/><text id="bM" x="785" y="318" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">0%</text>
+        <text x="785" y="395" text-anchor="middle" class="lab">Vaso + sensor de umidade</text></g>
+      <!-- controlador -->
+      <g id="mcu"><rect x="300" y="70" width="250" height="100" rx="10" fill="#12392a"/>
+        <text x="425" y="96" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">Controlador (ESP32)</text>
+        <text x="425" y="118" text-anchor="middle" fill="#bfe8c9" font-size="11">regras F1·F2 · relógio RTC · memória local</text>
+        <text id="mcuTxt" x="425" y="144" text-anchor="middle" fill="#fff" font-size="12">pronto</text>
+        <circle id="ledNet" cx="322" cy="150" r="5" fill="#3d9a63"/><circle id="ledAlert" cx="338" cy="150" r="5" fill="#555"/></g>
+      <path class="wire" d="M390 290V170"/><path class="wire" d="M785 262V230H600V140H550"/><path class="wire" d="M300 130H250V282"/>
+      <!-- nuvem -->
+      <g id="cloud"><path d="M650 62a22 22 0 0 1 0-44 28 28 0 0 1 52 6 18 18 0 0 1 0 38Z" fill="#e3f0fa" stroke="#1b6fa8" stroke-width="3"/><text x="682" y="48" text-anchor="middle" class="lab sm">Painel remoto</text></g>
+      <path id="wireCloud" class="wire cloud" d="M550 110H600V60H650"/>
+      <g id="noNet" opacity="0"><path d="M596 48l24 24M620 48l-24 24" stroke="#c0392b" stroke-width="5" stroke-linecap="round"/></g>
+    </svg>
+    <p class="sub">Esquema do MVP físico (tensão ≤ 12 V). O simulador reproduz a lógica do controlador; os números são simulados e servem para demonstrar F1, F2 e F3 antes e durante a montagem da bancada.</p>
+  </article>
+</section>
+
+<!-- ============ REGISTRO ============ -->
+<section id="view-registro" class="view">
+  <article class="card">
+    <header><h3>Registro local (memória do controlador)</h3>
+      <div class="rt"><label class="sel">Filtro <select id="logFilter"><option value="">Tudo</option><option>leitura</option><option>comando</option><option>alerta</option><option>recomendação</option><option>decisão</option><option>conexão</option><option>ambiente</option><option>teste</option><option>evento</option></select></label>
+      <button id="btnCsv" class="btn sm">Exportar CSV</button><button id="btnClearLog" class="btn ghost sm">Limpar registro</button></div></header>
+    <div class="tw"><table><thead><tr><th>Hora (sim.)</th><th>Tipo</th><th>Evento</th><th>Nuvem</th></tr></thead><tbody id="logBody"></tbody></table></div>
+    <p class="sub" id="logCount"></p>
+  </article>
+</section>
+
+<!-- ============ AJUSTES ============ -->
+<section id="view-ajustes" class="view">
+  <div class="two">
+    <article class="card">
+      <header><h3>Regras e limiares</h3></header>
+      <div class="form">
+        <label>Limiar crítico de umidade <output></output><input type="range" min="15" max="45" step="1" data-cfg="crit" data-u="%"></label>
+        <label>Umidade-alvo da irrigação <output></output><input type="range" min="30" max="55" step="1" data-cfg="target" data-u="%"></label>
+        <label>Não irrigar se chuva prevista ≥ <output></output><input type="range" min="20" max="100" step="5" data-cfg="rainLimit" data-u="%"></label>
+        <label>Tolerância de vazão (X) <output></output><input type="range" min="5" max="50" step="1" data-cfg="devPct" data-u="%"></label>
+        <label>Persistência do desvio (T) <output></output><input type="range" min="1" max="10" step="1" data-cfg="persist" data-u=" leituras"></label>
+        <label>Intervalo entre registros <output></output><input type="range" min="1" max="15" step="1" data-cfg="interval" data-u=" min"></label>
+        <label>Tempo máximo contínuo da bomba <output></output><input type="range" min="10" max="120" step="5" data-cfg="maxRun" data-u=" min"></label>
+        <label>Vazão nominal da bancada <output></output><input type="range" min="2" max="15" step="0.5" data-cfg="nominal" data-u=" L/min"></label>
+      </div>
+      <button id="btnDefaults" class="btn ghost sm">Restaurar valores iniciais</button>
+    </article>
+    <article class="card">
+      <header><h3>Linha de base da vazão</h3></header>
+      <p>Vazão de referência usada para detectar desvios (F2): <b id="baseTxt"></b></p>
+      <p class="sub">A recalibração mede a vazão por 8 minutos simulados com a bancada <b>normal</b> (sem falha injetada) e adota a média como referência.</p>
+      <button id="btnCal" class="btn">Recalibrar linha de base</button>
+      <p id="calStatus" class="sub"></p>
+      <hr>
+      <header><h3>Dados salvos neste navegador</h3></header>
+      <p class="sub">O estado (registro, ajustes, contadores de teste) fica no armazenamento local do navegador — também é uma demonstração de operação sem servidor.</p>
+      <button id="btnReset" class="btn danger sm">Zerar simulação e registro</button>
+    </article>
+  </div>
+</section>
+
+<!-- ============ TESTES ============ -->
+<section id="view-testes" class="view">
+  <div class="two">
+    <article class="card">
+      <header><h3>Resultados do simulador</h3><span class="tag">não substituem a bancada física</span></header>
+      <div class="kpis">
+        <div><b id="tInj">0</b><span>falhas injetadas</span></div>
+        <div><b id="tDet">0</b><span>detectadas</span></div>
+        <div><b id="tDelay">—</b><span>atraso médio (min)</span></div>
+        <div><b id="tFalse">0</b><span>falsos alertas</span></div>
+        <div><b id="tConf">0</b><span>confirmados / descartados</span></div>
+        <div><b id="tDec">0</b><span>decisões do operador</span></div>
+      </div>
+      <p class="sub" id="tRead"></p>
+    </article>
+    <article class="card">
+      <header><h3>Protocolo de teste (Entrega 6)</h3></header>
+      <ul class="ck">
+        <li id="ck1"><i></i><div><b>T1 · Operação offline</b><span>Internet desligada, ≥ 3 registros locais e um comando de bomba executado</span></div></li>
+        <li id="ck2"><i></i><div><b>T2 · Sincronização</b><span>Após o retorno do sinal, registros pendentes enviados (fila = 0)</span></div></li>
+        <li id="ck3"><i></i><div><b>T3 · Falhas simuladas</b><span>Entupimento, vazamento e bomba a seco detectados ao menos uma vez</span></div></li>
+        <li id="ck4"><i></i><div><b>T4 · Usabilidade</b><span>Operador/técnico explica a recomendação <label class="inl"><input type="checkbox" id="t4"> marcar após teste com usuário</label></span></div></li>
+      </ul>
+    </article>
+  </div>
+  <article class="card">
+    <header><h3>Eventos aleatórios ocorridos <span class="tag">modo Operação</span></h3></header>
+    <div class="kpis">
+      <div><b id="eRain">0</b><span>chuvas</span></div><div><b id="eNet">0</b><span>quedas de internet</span></div>
+      <div><b id="ePower">0</b><span>quedas de energia</span></div><div><b id="eFault">0</b><span>falhas espontâneas</span></div>
+      <div><b id="eGlitch">0</b><span>leituras espúrias</span></div><div><b id="eRepair">0</b><span>reparos</span></div>
+    </div>
+  </article>
+  <article class="card">
+    <header><h3>Resumo para o portfólio</h3><button id="btnCopy" class="btn sm">Copiar texto</button></header>
+    <pre id="summary" class="sumry"></pre>
+  </article>
+</section>
+
+<!-- ============ SOBRE ============ -->
+<section id="view-sobre" class="view">
+  <div class="two">
+    <article class="card prose">
+      <h3>O que é o Raiz</h3>
+      <p>Sistema modular que ajuda produtores de cana-de-açúcar de Jaú a decidir <b>quando irrigar</b> e a perceber <b>anomalias de vazão</b>, registrando tudo localmente — mesmo sem internet.</p>
+      <h3>As três funções do MVP</h3>
+      <ol>
+        <li><b>F1 · Recomendação.</b> Umidade abaixo do limiar e sem chuva prevista → o painel sugere duração. O operador aceita, ajusta ou recusa.</li>
+        <li><b>F2 · Anomalia de vazão.</b> Compara a vazão medida com a de referência; desvio acima de X% por T leituras gera alerta. Vazão ≈ 0 com bomba ligada para a bomba (proteção a seco).</li>
+        <li><b>F3 · Offline.</b> Leitura, registro, alerta e comando seguem sem internet; os registros pendentes sincronizam quando o sinal volta.</li>
+      </ol>
+      <h3>Roteiro de demonstração (pitch)</h3>
+      <p>Clique em <b>Demonstração guiada</b>: solo seco → internet cai → bomba liga → entupimento → vazamento → sinal volta e sincroniza → bomba a seco com parada automática.</p>
+    </article>
+    <article class="card prose">
+      <h3>Limites declarados</h3>
+      <ul>
+        <li>Todos os valores são <b>simulados</b>. Este programa demonstra a lógica; não há resultado de campo.</li>
+        <li>Não comanda bomba real. Instalação real exige profissional habilitado (NR-10), cadastro/outorga do poço e plano de segurança.</li>
+        <li>pH, condutividade e turbidez são módulo futuro e, quando existirem, serão só <b>triagem</b> — nunca prova de potabilidade.</li>
+        <li>Os limiares iniciais (20% e 3 leituras) são propostas a calibrar na bancada.</li>
+        <li>Economia de água ou energia só será declarada com dados comparáveis.</li>
+      </ul>
+      <h3>ODS relacionados</h3>
+      <p>2 · Agricultura sustentável &nbsp;|&nbsp; 6 · Água e saneamento &nbsp;|&nbsp; 12 · Consumo responsável &nbsp;|&nbsp; 13 · Ação climática</p>
+      <h3>Projeto</h3>
+      <p>INTEGRA SENAI 2026 · categoria Inovação Aberta · Equipe Atlas · líder Leonardo Navas · Jaú-SP.</p>
+    </article>
+  </div>
+</section>
+</main>
+
+<footer class="foot">Raiz · MVP digital (TRL 3) · dados simulados · funciona offline neste navegador</footer>
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<script src="js/app.js"></script>
+</body>
+</html>
