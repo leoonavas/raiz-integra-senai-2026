@@ -160,13 +160,15 @@ setInterval(() => { if (S.wx.kind === 'storm' && !document.hidden && Math.random
 const SPEEDS = [[0, '⏸'], [1, '1'], [2, '2'], [5, '5'], [15, '15'], [60, '60']];
 const WXBTN = [['auto', 'Automático'], ['sun', 'Ensolarado'], ['part', 'Parcial'], ['cloud', 'Nublado'], ['rain', 'Chuva'], ['storm', 'Tempestade'], ['heat', 'Onda de calor']];
 const TABS = [['amb', 'Ambiente'], ['flt', 'Falhas e cenários'], ['dev', 'Dispositivos'], ['log', 'Sinais']];
+/* falhas de vazão só aparecem com a bomba ligada: o cenário já liga a irrigação (como um operador no local) */
+const startPump = (plot, min) => { const r = Sim.act.start(S, plot, min); if (!r.ok) S.hooks.log('Bomba não ligou: ' + r.text, 'bad'); return r; };
 const setFault = (key, plot, on) => { if (Sim.faults.isOn(S, key, plot) !== on) Sim.faults.toggle(S, key, plot); };
 const refreshForecast = () => { if (mode === 'edge') { E.lastForecastAt = -1e9; E.flush(); } else { gw.forecastAt = -9999; if (S.net.gateway) gw.tick(S.t); } };
 const SCN = [
   ['Dia seco e quente', 'Onda de calor, sem chuva à vista', () => { S.wx.mode = 'manual'; S.wx.manual = 'heat'; S.forecastOverride = 3; refreshForecast(); }],
   ['Chuva forte em 2 h', 'Tempestade agendada; previsão sobe', () => { S.wx.mode = 'auto'; S.forecastOverride = null; S.plan.push({ s: S.t + 120, e: S.t + 220, kind: 'storm' }); S.plan.sort((a, b) => a.s - b.s); refreshForecast(); }],
-  ['Entupimento no Talhão 1', 'Vazão cai ~38% ao irrigar', () => setFault('clog', 't1', true)],
-  ['Vazamento no Talhão 2', 'Vazão sobe ~45% ao irrigar', () => setFault('leak', 't2', true)],
+  ['Entupimento no Talhão 1', 'Liga a bomba do T1 e a vazão cai ~38%', () => { setFault('clog', 't1', true); startPump('t1', 30); }],
+  ['Vazamento no Talhão 2', 'Liga a bomba do T2 e a vazão sobe ~45%', () => { setFault('leak', 't2', true); startPump('t2', 30); }],
   ['Poço seco', 'Bomba trava a seco em ~2 min', () => setFault('well', null, true)],
   ['Queda de energia', 'Controlador sem energia', () => setFault('power', null, true)],
   ['Sem internet por 2 h', 'Gateway guarda registros e sincroniza depois', () => { setFault('internet', null, true); sched.push({ at: S.t + 120, fn: () => { setFault('internet', null, false); } }); }],
@@ -194,7 +196,9 @@ function renderPanel() {
     const f = Sim.faults.list(S, selPlot), on = (k, pl) => Sim.faults.isOn(S, k, pl);
     p.innerHTML = `<div class="cols">
       <div class="box"><h3>Falhas do talhão</h3><div class="row">${S.plots.map(x => `<button class="btn ${x.id === selPlot ? 'on' : ''}" data-act="plot" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div>
-        <div class="row">${f.map(([k, l, v]) => `<button class="btn danger ${v ? 'on' : ''}" data-act="fault" data-v="${k}">${l}</button>`).join('')}</div></div>
+        <div class="row">${f.map(([k, l, v]) => `<button class="btn danger ${v ? 'on' : ''}" data-act="fault" data-v="${k}">${l}</button>`).join('')}</div>
+        <div class="row"><button class="btn" data-act="pumpnow">Ligar a bomba deste talhão (30 min)</button></div>
+        <div class="hint">Entupimento e vazamento só aparecem na <b>vazão</b>, que só existe com a bomba ligada: ligue a irrigação (no app ou aqui) e o alerta chega em poucos minutos simulados.</div></div>
       <div class="box"><h3>Infraestrutura</h3><div class="row">${[['well', 'Poço seco'], ['power', 'Falta de energia'], ['gateway', 'Gateway fora do ar'], ['internet', 'Internet fora do ar'], ['wstation', 'Estação sem comunicação']].map(([k, l]) => `<button class="btn danger ${on(k) ? 'on' : ''}" data-act="infra" data-v="${k}">${l}</button>`).join('')}</div>
         <div class="row"><button class="btn" data-act="clear">Corrigir todas as falhas</button></div>
         <div class="hint">Falhas não aparecem como alerta por mágica: o gateway só as percebe pelo que os dispositivos enviam.</div></div>
@@ -259,6 +263,7 @@ document.addEventListener('click', e => {
     case 'clear': Sim.faults.clearAll(S); sched.length = 0; refresh(true); break;
     case 'scn': SCN[+v][2](); refresh(true); break;
     case 'reset': resetAll(); break;
+    case 'pumpnow': startPump(selPlot, 30); refresh(true); break;
     case 'logpause': logPaused = !logPaused; renderPanel(); break;
     case 'logclear': logs.length = 0; renderPanel(); break;
   }

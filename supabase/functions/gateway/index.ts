@@ -10,6 +10,7 @@ const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",                     // o navegador guarda a pré-verificação (CORS) por 24 h: metade das chamadas a menos
 };
 
 // O JWT já foi verificado pela plataforma (verify_jwt). Aqui só lemos o papel e o usuário.
