@@ -38,14 +38,20 @@
     if (window.supabase && window.supabase.createClient) return ok();
     const s = document.createElement('script'); s.src = LIB; s.onload = ok; s.onerror = () => fail(new Error('Não foi possível carregar o Supabase (sem internet?).')); document.head.appendChild(s);
   });
+  const FIELD = 'width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:1px solid #25372f;background:#15211b;color:inherit;font:inherit;margin-bottom:10px';
+  const BTN = 'width:100%;padding:14px;border:0;border-radius:12px;font:inherit;font-weight:800;cursor:pointer;margin-bottom:10px;';
   function gateUI() {
     const ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0d1612;color:#e8f1ec;display:grid;place-items:center;padding:24px;font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
-    ov.innerHTML = '<div style="width:100%;max-width:360px;text-align:center"><div style="font-size:28px;font-weight:800;letter-spacing:-.3px">Raiz</div><p id="gm" style="color:#93a69b;margin:8px 0 20px">Entre com o e-mail cadastrado na fazenda. Enviaremos um link de acesso, sem senha.</p>'
-      + '<form id="gf"><input id="ge" type="email" required autocomplete="email" placeholder="seu@email.com" style="width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:1px solid #25372f;background:#15211b;color:inherit;font:inherit;margin-bottom:10px">'
-      + '<button id="gb" style="width:100%;padding:14px;border:0;border-radius:12px;background:#4cbf80;color:#07130d;font:inherit;font-weight:800;cursor:pointer">Enviar link de acesso</button></form></div>';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0d1612;color:#e8f1ec;display:grid;place-items:center;padding:24px;font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:auto';
+    ov.innerHTML = '<div style="width:100%;max-width:360px;text-align:center"><div style="font-size:28px;font-weight:800;letter-spacing:-.3px">Raiz</div><p id="gm" style="color:#93a69b;margin:8px 0 20px">Entre com seu e-mail e senha. No primeiro acesso, toque em “Criar conta”: a conta e a sua fazenda são criadas na hora, sem confirmar o e-mail.</p>'
+      + '<form id="gf"><input id="ge" type="email" required autocomplete="email" placeholder="seu@email.com" style="' + FIELD + '">'
+      + '<input id="gp" type="password" required minlength="6" autocomplete="current-password" placeholder="Senha (mínimo 6 caracteres)" style="' + FIELD + '">'
+      + '<button id="gb" style="' + BTN + 'background:#4cbf80;color:#07130d">Entrar</button>'
+      + '<button id="gc" type="button" style="' + BTN + 'background:#25372f;color:inherit">Criar conta</button>'
+      + '<button id="gl" type="button" style="width:100%;padding:8px;border:0;background:none;color:#93a69b;font:inherit;font-size:14px;text-decoration:underline;cursor:pointer">Receber link de acesso por e-mail (sem senha)</button></form></div>';
     document.body.appendChild(ov); return ov;
   }
+  const authMsg = m => /invalid login/i.test(m) ? 'E-mail ou senha incorretos. Se ainda não tem conta, toque em “Criar conta”.' : /already registered|already been registered/i.test(m) ? 'Este e-mail já tem conta. Use “Entrar”.' : /rate/i.test(m) ? 'Muitos pedidos seguidos. Aguarde alguns minutos e tente de novo.' : /password/i.test(m) ? 'Senha inválida: use pelo menos 6 caracteres.' : /invalid/i.test(m) ? 'E-mail inválido.' : m;
   function supabaseT(o, ctx) {
     const cfg = window.RAIZ_SUPABASE || {}, subs = new Set(), queue = [], win = []; let sb = null, ch = null, up = false, gate = null, info = {};
     let okReady, badReady; const ready = new Promise((a, b) => { okReady = a; badReady = b; }); ready.catch(() => { });
@@ -53,15 +59,43 @@
     const deliver = m => { if (m && m.v === V && m.src !== o.role && m.farm === ctx.farmId) subs.forEach(f => { try { f(m); } catch (e) { console.error('[RaizLink]', e); } }); };
     function askLogin() {
       return new Promise(resolve => {
-        gate = gate || gateUI(); const form = gate.querySelector('#gf'), btn = gate.querySelector('#gb');
+        gate = gate || gateUI(); const form = gate.querySelector('#gf'), q = id => gate.querySelector(id);
         sb.auth.onAuthStateChange((ev, ses) => { if (ses && ses.user) resolve(ses); });
+        const busy = (on, el, txt) => { ['#gb', '#gc', '#gl'].forEach(i => q(i).disabled = on); if (el) el.textContent = on ? 'Aguarde…' : txt; };
+        const creds = () => ({ email: q('#ge').value.trim(), password: q('#gp').value });
         form.onsubmit = async e => {
-          e.preventDefault(); btn.disabled = true; btn.textContent = 'Enviando…';
-          const email = gate.querySelector('#ge').value.trim();
-          const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: true } });
-          btn.disabled = false; btn.textContent = 'Enviar link de acesso';
-          if (error) say(/rate/i.test(error.message) ? 'Muitos pedidos seguidos. Aguarde alguns minutos e tente de novo.' : 'Não foi possível enviar: ' + error.message, true);
+          e.preventDefault(); busy(true, q('#gb')); const { error } = await sb.auth.signInWithPassword(creds()); busy(false, q('#gb'), 'Entrar');
+          if (error) say(authMsg(error.message), true);
+        };
+        q('#gc').onclick = async () => {
+          if (!form.reportValidity()) return;
+          busy(true, q('#gc')); const { data, error } = await sb.auth.signUp(creds()); busy(false, q('#gc'), 'Criar conta');
+          if (error) say(authMsg(error.message), true);
+          else if (!data.session) say('Conta criada, mas o projeto ainda exige confirmação por e-mail. Peça ao responsável para desligar a confirmação no Supabase.', true);
+        };
+        q('#gl').onclick = async () => {
+          if (!q('#ge').reportValidity()) return;
+          const email = q('#ge').value.trim(); busy(true, q('#gl'));
+          const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: true } }); busy(false, q('#gl'), 'Receber link de acesso por e-mail (sem senha)');
+          if (error) say(/rate/i.test(error.message) ? 'Limite de e-mails do projeto atingido. Entre com e-mail e senha.' : 'Não foi possível enviar: ' + error.message, true);
           else say('Enviamos um link para ' + email + '. Abra-o neste mesmo navegador.');
+        };
+      });
+    }
+    /* primeira vez: a pessoa ainda não tem fazenda -> cria a própria (vira gestora) */
+    function askFarm() {
+      return new Promise(resolve => {
+        gate = gate || gateUI();
+        gate.querySelector('#gf').outerHTML = '<form id="ff"><input id="fn" required maxlength="60" placeholder="Nome da fazenda (ex.: Fazenda Jacutinga)" style="' + FIELD + '">'
+          + '<input id="fc" maxlength="60" placeholder="Cidade (opcional)" style="' + FIELD + '">'
+          + '<button id="fb" style="' + BTN + 'background:#4cbf80;color:#07130d">Criar minha fazenda</button>'
+          + '<button id="fo" type="button" style="' + BTN + 'background:#25372f;color:inherit">Sair</button></form>';
+        say('Conta criada. Falta só o nome da sua fazenda.');
+        gate.querySelector('#fo').onclick = () => out();
+        gate.querySelector('#ff').onsubmit = async e => {
+          e.preventDefault(); const b = gate.querySelector('#fb'); b.disabled = true; b.textContent = 'Criando…';
+          const { error } = await sb.rpc('create_farm', { p_name: gate.querySelector('#fn').value, p_city: gate.querySelector('#fc').value });
+          if (error) { b.disabled = false; b.textContent = 'Criar minha fazenda'; say(error.message, true); } else resolve();
         };
       });
     }
@@ -72,10 +106,15 @@
       let { data: { session } } = await sb.auth.getSession();
       if (!session) session = await askLogin();
       const wanted = new URLSearchParams(location.search).get('farm');
-      const { data: farms, error } = await sb.from('farms').select('id,slug,name,city');
+      const pick = fs => (fs || []).find(f => f.slug === wanted) || (fs || [])[0];
+      let { data: farms, error } = await sb.from('farms').select('id,slug,name,city');
       if (error) throw error;
-      const farm = (farms || []).find(f => f.slug === wanted) || (farms || [])[0];
-      if (!farm) { gate = gate || gateUI(); gate.querySelector('#gf').innerHTML = '<button id="go" style="width:100%;padding:14px;border:0;border-radius:12px;background:#25372f;color:inherit;font:inherit;font-weight:700;cursor:pointer">Sair</button>'; gate.querySelector('#go').onclick = () => out(); say('Este e-mail ainda não está vinculado a nenhuma fazenda. Peça o convite ao gestor.', true); throw new Error('sem fazenda'); }
+      let farm = pick(farms);
+      while (!farm) {
+        await askFarm();
+        ({ data: farms, error } = await sb.from('farms').select('id,slug,name,city'));
+        if (error) throw error; farm = pick(farms);
+      }
       const { data: mem } = await sb.from('farm_members').select('role').eq('farm_id', farm.id).eq('user_id', session.user.id).maybeSingle();
       ctx.farmId = farm.id; info = { farm, role: (mem && mem.role) || 'operador', email: session.user.email };
       sb.realtime.setAuth(session.access_token);
@@ -94,7 +133,7 @@
       win.push(now); ch.send({ type: 'broadcast', event: 'msg', payload: m });
       if (LOGGED.has(m.type)) sb.from('farm_events').insert({ farm_id: ctx.farmId, src: o.role, type: m.type, payload: m.payload }).then(r => { if (r.error) console.warn('[RaizLink] log', r.error.message); });
     }
-    init().catch(e => { console.error('[RaizLink]', e); if (!gate) gate = gateUI(); if (e.message !== 'sem fazenda') say('Falha ao conectar: ' + e.message, true); badReady(e); });
+    init().catch(e => { console.error('[RaizLink]', e); if (!gate) gate = gateUI(); say('Falha ao conectar: ' + e.message, true); badReady(e); });
     /* chama uma Edge Function com o login do usuário; respostas de erro HTTP voltam como objeto (com _status) */
     async function invoke(fn, body) {
       await ready; const r = await sb.functions.invoke(fn, { body });

@@ -140,7 +140,9 @@ O gateway abre um alerta (aba *Alertas*, selo no ícone, aviso na tela) quando o
 
 - RLS em tudo: acesso sempre por pertencimento à fazenda (`is_farm_member`).
 - A chave `anon` em `js/config.js` é pública por desenho. **Nunca** colocar a `service_role` no front-end.
-- Convidar alguém: `insert into farm_invites (email, farm_id, role) …` (SQL Editor do Supabase).
+- Criar fazenda própria: qualquer pessoa autenticada chama `rpc('create_farm', { p_name, p_city })` (migração `20261118_003`): cria a fazenda e vincula quem chamou como `gestor` (limite de 3 por conta). É o que o app faz no primeiro acesso.
+- Entrar: e-mail e senha (`signUp` / `signInWithPassword`), com confirmação de e-mail desligada no projeto (`auth.email.enable_confirmations = false`, ver `supabase/config.toml`); o link mágico continua como opção.
+- Convidar alguém para uma fazenda existente: `insert into farm_invites (email, farm_id, role) …` (SQL Editor do Supabase).
 - No Supabase, em *Authentication → URL Configuration*, o **Site URL** e as **Redirect URLs** precisam conter os endereços hospedados (fazenda e app), senão o link mágico não volta para o site certo.
 
 ### Limites desta etapa

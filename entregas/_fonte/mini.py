@@ -216,6 +216,7 @@ def to_docx(d, out):
     return out
 
 def salvar(d, pasta):
-    os.makedirs(pasta, exist_ok=True)
-    to_docx(d, f'{pasta}/{d.arquivo}.docx'); to_pdf(d, f'{pasta}/{d.arquivo}.pdf')
+    """Word em <pasta>/Word; PDF (e planilhas, apresentação) em <pasta>/PDF_e_outros."""
+    os.makedirs(f'{pasta}/Word', exist_ok=True); os.makedirs(f'{pasta}/PDF_e_outros', exist_ok=True)
+    to_docx(d, f'{pasta}/Word/{d.arquivo}.docx'); to_pdf(d, f'{pasta}/PDF_e_outros/{d.arquivo}.pdf')
     return d.arquivo
